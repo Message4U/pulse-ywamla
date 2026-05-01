@@ -1,201 +1,406 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PULSE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png">
+  <meta name="theme-color" content="#16213e">
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
-    body { font-family: Arial; margin:0; background:#f4f4f4; }
-    #app { padding:20px; padding-bottom:80px; }
-
-    .card {
-      background:white;
-      padding:15px;
-      margin:10px 0;
-      border-radius:12px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    .sender {
-      font-weight:bold;
-      cursor:pointer;
-      color:#f97316;
-    }
-
-    .input { width:100%; padding:10px; margin:10px 0; }
-
-    .row { display:flex; gap:10px; }
-
-    .btn {
-      padding:10px;
-      background:#f97316;
-      color:white;
-      border:none;
-      border-radius:8px;
-    }
-
-    .bottom {
-      position:fixed;
-      bottom:0;
-      width:100%;
-      display:flex;
-      justify-content:space-around;
-      background:white;
-      padding:10px;
-      border-top:1px solid #ccc;
-    }
+    body { margin:0; font-family:Arial,sans-serif; background:#f7f7f5; color:#16213e; }
+    .app { max-width:430px; margin:auto; padding:18px 18px 100px; }
+    h1 { text-align:center; margin:18px 0 4px; font-size:34px; letter-spacing:1px; }
+    .subtitle { text-align:center; color:#777; font-size:13px; margin-bottom:18px; }
+    .section-title { font-weight:bold; margin:20px 0 10px; font-size:15px; text-transform:uppercase; }
+    .card { background:white; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); cursor:pointer; }
+    .small { color:#666; font-size:13px; margin-top:4px; }
+    .back { margin-bottom:16px; display:inline-block; color:#f97316; font-weight:bold; cursor:pointer; }
+    input { width:100%; padding:12px; border-radius:10px; border:1px solid #ccc; box-sizing:border-box; margin-bottom:10px; }
+    button { padding:11px 14px; border:none; background:#f97316; color:white; border-radius:10px; font-weight:bold; }
+    .secondary { background:#16213e; }
+    .nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; z-index:10; }
+    .nav div { cursor:pointer; }
+    .triangle-wrap { position:relative; width:100%; max-width:340px; margin:0 auto 22px; }
+    .triangle { width:100%; display:block; border-radius:20px; }
+    .tap-zone { position:absolute; display:block; cursor:pointer; }
+    .campus-zone { right:0; bottom:18%; width:55%; height:28%; }
+    .go-zone { left:0; bottom:8%; width:45%; height:55%; }
+    .uofn-zone { top:0; right:16%; width:45%; height:55%; }
+    .chat-input { position:fixed; bottom:48px; left:0; right:0; max-width:430px; margin:auto; padding:10px; background:#f7f7f5; display:flex; gap:8px; z-index:9; }
+    .chat-input input { flex:1; margin-bottom:0; }
+    #messages { margin-bottom:90px; }
+    .sender { font-weight:bold; color:#f97316; cursor:pointer; }
+    .row { display:flex; gap:8px; }
   </style>
 </head>
 
 <body>
 
-<div id="app"></div>
+<div class="app" id="app"></div>
 
-<div class="bottom">
+<div class="nav">
   <div onclick="showHome()">Home</div>
-  <div onclick="showChats()">Chat</div>
-  <div>Calendar</div>
-  <div>Docs</div>
+  <div onclick="showChatList()">Chat</div>
+  <div onclick="showPage('Calendar','Weekly calendar coming')">Calendar</div>
+  <div onclick="showPage('Docs','Docs coming')">Docs</div>
 </div>
 
 <script>
-const SUPABASE_URL = "https://livkeknqrjgmumjgwkuh.supabase.co";
-const SUPABASE_KEY = "sb_publishable_uGTC509N0reeUKs-5SviUQ_2VJvhEa1";
+  const SUPABASE_URL = "https://livkeknqrjgmumjgwkuh.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_uGTC509N0reeUKs-5SviUQ_2VJvhEa1";
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  let currentUser = null;
+  let currentProfile = null;
+  let currentConversationId = null;
 
-let currentConversationId = null;
+  async function init() {
+    const { data } = await db.auth.getUser();
+    currentUser = data.user;
 
-function getMyName() {
-  return document.getElementById("username")?.value || "Anonymous";
-}
-
-function showHome() {
-  document.getElementById("app").innerHTML = `
-    <h1>PULSE</h1>
-    <input id="username" class="input" placeholder="Your name">
-    <div class="card">Welcome</div>
-  `;
-}
-
-async function showChats() {
-  document.getElementById("app").innerHTML = `
-    <h2>Chats</h2>
-    <input id="username" class="input" placeholder="Your name">
-    <div id="list"></div>
-  `;
-  loadConversationList();
-}
-
-async function loadConversationList() {
-  const { data } = await db.from("conversations").select("*");
-
-  const myName = getMyName();
-
-  const visible = data.filter(c => {
-    if (c.type !== "dm") return true;
-    return c.name.toLowerCase().includes(myName.toLowerCase());
-  });
-
-  document.getElementById("list").innerHTML =
-    visible.map(c => `
-      <div class="card" onclick="openConversation('${c.id}','${c.name}')">
-        ${c.name}
-      </div>
-    `).join("");
-}
-
-function openConversation(id, name) {
-  currentConversationId = id;
-
-  document.getElementById("app").innerHTML = `
-    <div onclick="showChats()">← Chats</div>
-    <h2>${name}</h2>
-
-    <div id="messages"></div>
-
-    <div class="row">
-      <input id="msg" class="input">
-      <button class="btn" onclick="sendMessage()">Send</button>
-    </div>
-  `;
-
-  loadMessages();
-}
-
-async function loadMessages() {
-  const { data } = await db
-    .from("messages")
-    .select("*")
-    .eq("conversation_id", currentConversationId)
-    .order("created_at");
-
-  document.getElementById("messages").innerHTML =
-    data.map(m => `
-      <div class="card">
-        <div class="sender" onclick="startPrivateChat('${m.sender_name}')">
-          ${m.sender_name || "Anonymous"}
-        </div>
-        <div>${m.content}</div>
-      </div>
-    `).join("");
-}
-
-async function sendMessage() {
-  const text = document.getElementById("msg").value;
-  const name = getMyName();
-
-  await db.from("messages").insert({
-    content: text,
-    sender_name: name,
-    conversation_id: currentConversationId
-  });
-
-  document.getElementById("msg").value = "";
-  loadMessages();
-}
-
-async function startPrivateChat(other) {
-  const me = getMyName();
-
-  if (!other || other === me) return;
-
-  const names = [me, other].sort();
-  const dm = names[0] + " ↔ " + names[1];
-
-  const { data } = await db
-    .from("conversations")
-    .select("*")
-    .eq("name", dm)
-    .limit(1);
-
-  if (data.length > 0) {
-    openConversation(data[0].id, data[0].name);
-    return;
+    if (currentUser) {
+      await loadProfile();
+      showHome();
+    } else {
+      showLogin();
+    }
   }
 
-  const { data: newConv } = await db
-    .from("conversations")
-    .insert([{ name: dm, type: "dm" }])
-    .select()
-    .single();
+  function requireYwamEmail(email) {
+    return email.toLowerCase().endsWith("@ywamla.org");
+  }
 
-  await db.from("conversation_members").insert([
-    { conversation_id: newConv.id, member_name: me },
-    { conversation_id: newConv.id, member_name: other }
-  ]);
+  function showLogin() {
+    document.getElementById("app").innerHTML = `
+      <h1>PULSE</h1>
+      <div class="subtitle">YWAM Los Angeles Staff Login</div>
 
-  openConversation(newConv.id, newConv.name);
-}
+      <div class="card">
+        <input id="name" placeholder="Full name">
+        <input id="email" placeholder="YWAM LA email">
+        <input id="password" type="password" placeholder="Password">
+        <div class="row">
+          <button onclick="signUp()">Sign Up</button>
+          <button class="secondary" onclick="login()">Log In</button>
+        </div>
+        <div class="small">Use your @ywamla.org email.</div>
+      </div>
+    `;
+  }
 
-// realtime
-db.channel("live")
-  .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, loadMessages)
-  .subscribe();
+  async function signUp() {
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim().toLowerCase();
+    const password = document.getElementById("password").value;
 
-showHome();
+    if (!requireYwamEmail(email)) {
+      alert("Please use a @ywamla.org email.");
+      return;
+    }
+
+    if (!name || !password) {
+      alert("Enter name and password.");
+      return;
+    }
+
+    const { data, error } = await db.auth.signUp({ email, password });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    if (data.user) {
+      await db.from("profiles").upsert({
+        id: data.user.id,
+        name,
+        email
+      });
+    }
+
+    alert("Account created. If Supabase asks for email confirmation, check your email, then log in.");
+    showLogin();
+  }
+
+  async function login() {
+    const email = document.getElementById("email").value.trim().toLowerCase();
+    const password = document.getElementById("password").value;
+
+    if (!requireYwamEmail(email)) {
+      alert("Please use a @ywamla.org email.");
+      return;
+    }
+
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    currentUser = data.user;
+    await loadProfile();
+    showHome();
+  }
+
+  async function logout() {
+    await db.auth.signOut();
+    currentUser = null;
+    currentProfile = null;
+    showLogin();
+  }
+
+  async function loadProfile() {
+    const { data } = await db
+      .from("profiles")
+      .select("*")
+      .eq("id", currentUser.id)
+      .single();
+
+    currentProfile = data;
+  }
+
+  function showHome() {
+    if (!currentUser) return showLogin();
+
+    document.getElementById("app").innerHTML = `
+      <h1>PULSE</h1>
+      <div class="subtitle">YWAM Los Angeles</div>
+
+      <div class="small" style="text-align:center; margin-bottom:12px;">
+        Signed in as ${currentProfile?.name || currentUser.email}
+        · <span onclick="logout()" style="color:#f97316; cursor:pointer;">Log out</span>
+      </div>
+
+      <div class="triangle-wrap">
+        <img src="triangle.png" class="triangle" alt="YWAM LA Triangle">
+        <div onclick="showArea('Campus','Life & Operations')" class="tap-zone campus-zone"></div>
+        <div onclick="showArea('Go','Outreach & Missions')" class="tap-zone go-zone"></div>
+        <div onclick="showArea('UofN','Training & Schools')" class="tap-zone uofn-zone"></div>
+      </div>
+
+      <div class="section-title">Announcements</div>
+      <div class="card"><strong>Staff Meeting</strong><div class="small">Friday 10am</div></div>
+      <div class="card"><strong>Outreach Team Update</strong><div class="small">Summer Mexico outreach is now full.</div></div>
+
+      <div class="section-title">This Week</div>
+      <div class="card"><strong>Intercession</strong><div class="small">Friday · 6:00 AM</div></div>
+    `;
+  }
+
+  function showArea(title, subtitle) {
+    document.getElementById("app").innerHTML = `
+      <span class="back" onclick="showHome()">← Back</span>
+      <h1>${title}</h1>
+      <div class="subtitle">${subtitle}</div>
+      <div class="card"><strong>Leaders</strong><div class="small">Add leaders and team members here.</div></div>
+      <div class="card"><strong>Updates</strong><div class="small">Area-specific announcements will show here.</div></div>
+      <div class="card" onclick="showChatList()"><strong>Open Chat</strong><div class="small">Go to conversation list.</div></div>
+    `;
+  }
+
+  function showPage(title, text) {
+    document.getElementById("app").innerHTML = `
+      <span class="back" onclick="showHome()">← Back</span>
+      <h1>${title}</h1>
+      <div class="card">${text}</div>
+    `;
+  }
+
+  async function showChatList() {
+    if (!currentUser) return showLogin();
+
+    document.getElementById("app").innerHTML = `
+      <h1>Chats</h1>
+      <div class="subtitle">Groups and private messages</div>
+
+      <div class="section-title">Official & Group Chats</div>
+      <div id="conversationList"><div class="card">Loading chats...</div></div>
+
+      <div class="section-title">Start Private Chat</div>
+      <div class="card">
+        <input id="privateEmail" placeholder="person@ywamla.org">
+        <button onclick="startPrivateChatByEmail()">Start Chat</button>
+      </div>
+    `;
+
+    await loadConversationList();
+  }
+
+  async function loadConversationList() {
+    const box = document.getElementById("conversationList");
+
+    const { data, error } = await db
+      .from("conversations")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      box.innerHTML = `<div class="card">Error: ${error.message}</div>`;
+      return;
+    }
+
+    const myEmail = currentUser.email.toLowerCase();
+
+    const visible = data.filter(c => {
+      if (c.type !== "dm") return true;
+      return c.name.toLowerCase().includes(myEmail);
+    });
+
+    box.innerHTML = visible.map(c => `
+      <div class="card" onclick="openConversation('${c.id}', '${escapeText(c.name)}')">
+        <strong>${displayConversationName(c.name)}</strong>
+        <div class="small">${c.type === "dm" ? "Private conversation" : c.type}</div>
+      </div>
+    `).join("");
+  }
+
+  function displayConversationName(name) {
+    if (!currentUser) return name;
+    return name.replace(currentUser.email, "You");
+  }
+
+  async function startPrivateChatByEmail() {
+    const otherEmail = document.getElementById("privateEmail").value.trim().toLowerCase();
+
+    if (!requireYwamEmail(otherEmail)) {
+      alert("Use a @ywamla.org email.");
+      return;
+    }
+
+    if (otherEmail === currentUser.email.toLowerCase()) {
+      alert("That is your own email.");
+      return;
+    }
+
+    await startPrivateChat(otherEmail);
+  }
+
+  async function startPrivateChat(otherEmail) {
+    const myEmail = currentUser.email.toLowerCase();
+    const emails = [myEmail, otherEmail].sort();
+    const dmName = `${emails[0]} ↔ ${emails[1]}`;
+
+    const { data: existing } = await db
+      .from("conversations")
+      .select("*")
+      .eq("name", dmName)
+      .eq("type", "dm")
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      openConversation(existing[0].id, existing[0].name);
+      return;
+    }
+
+    const { data, error } = await db
+      .from("conversations")
+      .insert([{ name: dmName, type: "dm", created_by_name: currentProfile?.name || currentUser.email }])
+      .select()
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await db.from("conversation_members").insert([
+      { conversation_id: data.id, member_email: myEmail, member_name: currentProfile?.name || myEmail },
+      { conversation_id: data.id, member_email: otherEmail, member_name: otherEmail }
+    ]);
+
+    openConversation(data.id, data.name);
+  }
+
+  async function openConversation(id, name) {
+    currentConversationId = id;
+
+    document.getElementById("app").innerHTML = `
+      <span class="back" onclick="showChatList()">← Chats</span>
+      <h1>${displayConversationName(name)}</h1>
+      <div id="messages"><div class="card">Loading messages...</div></div>
+
+      <div class="chat-input">
+        <input id="messageInput" placeholder="Type message...">
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    `;
+
+    await loadMessages();
+  }
+
+  async function loadMessages() {
+    const box = document.getElementById("messages");
+    if (!box || !currentConversationId) return;
+
+    const { data, error } = await db
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", currentConversationId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      box.innerHTML = `<div class="card">Error: ${error.message}</div>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      box.innerHTML = `<div class="card">No messages yet.</div>`;
+      return;
+    }
+
+    box.innerHTML = data.map(msg => `
+      <div class="card">
+        <div class="sender" onclick="startPrivateChat('${msg.sender_email}')">
+          ${msg.sender_name || msg.sender_email || "Unknown"}
+        </div>
+        <div class="small">${msg.content}</div>
+      </div>
+    `).join("");
+
+    setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 50);
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById("messageInput");
+    const text = input.value.trim();
+
+    if (!text || !currentConversationId) return;
+
+    const { error } = await db.from("messages").insert([{
+      content: text,
+      sender_name: currentProfile?.name || currentUser.email,
+      sender_email: currentUser.email.toLowerCase(),
+      conversation_id: currentConversationId
+    }]);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    input.value = "";
+    await loadMessages();
+  }
+
+  function escapeText(text) {
+    return String(text).replace(/'/g, "\\'");
+  }
+
+  db.channel("pulse-live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
+      loadMessages();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
+      if (document.getElementById("conversationList")) loadConversationList();
+    })
+    .subscribe();
+
+  init();
 </script>
 
 </body>
