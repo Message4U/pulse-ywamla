@@ -8,7 +8,7 @@
   <link rel="icon" href="icon.png">
   <meta name="theme-color" content="#16213e">
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
     body { margin:0; font-family:Arial,sans-serif; background:#f7f7f5; color:#16213e; }
@@ -25,11 +25,10 @@
     .card { background:white; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); }
     .small { color:#666; font-size:13px; margin-top:4px; }
     .back { margin-bottom:16px; display:inline-block; color:#f97316; font-weight:bold; cursor:pointer; }
-    .nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; }
+    .nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; z-index:10; }
     .nav div { cursor:pointer; }
-    .active { color:#f97316; font-weight:bold; }
     #messages { margin-bottom:90px; }
-    .chat-input { position:fixed; bottom:48px; left:0; right:0; max-width:430px; margin:auto; padding:10px; background:#f7f7f5; display:flex; gap:8px; }
+    .chat-input { position:fixed; bottom:48px; left:0; right:0; max-width:430px; margin:auto; padding:10px; background:#f7f7f5; display:flex; gap:8px; z-index:9; }
     .chat-input input { flex:1; padding:10px; border-radius:10px; border:1px solid #ccc; }
     .chat-input button { padding:10px 14px; border:none; background:#f97316; color:white; border-radius:10px; }
   </style>
@@ -117,41 +116,57 @@
     const messagesDiv = document.getElementById("messages");
     if (!messagesDiv) return;
 
-    const db = getSupabase();
+    try {
+      const db = getSupabase();
 
-    const { data, error } = await db
-      .from("messages")
-      .select("*")
-      .order("created_at", { ascending: true });
+      const { data, error } = await db
+        .from("messages")
+        .select("*")
+        .order("created_at", { ascending: true });
 
-    if (error) {
-      messagesDiv.innerHTML = `<div class="card">Error loading messages: ${error.message}</div>`;
-      return;
+      if (error) {
+        messagesDiv.innerHTML = `<div class="card">Error loading messages: ${error.message}</div>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        messagesDiv.innerHTML = `<div class="card">No messages yet.</div>`;
+        return;
+      }
+
+      messagesDiv.innerHTML = data.map(msg => `
+        <div class="card">${msg.content}</div>
+      `).join("");
+
+    } catch (err) {
+      messagesDiv.innerHTML = `<div class="card">Connection error: ${err.message}</div>`;
     }
-
-    messagesDiv.innerHTML = data.map(msg => `
-      <div class="card">${msg.content}</div>
-    `).join("");
   }
 
   async function sendMessage() {
     const input = document.getElementById("messageInput");
     const text = input.value.trim();
+
     if (!text) return;
 
-    const db = getSupabase();
+    try {
+      const db = getSupabase();
 
-    const { error } = await db
-      .from("messages")
-      .insert([{ content: text }]);
+      const { error } = await db
+        .from("messages")
+        .insert([{ content: text }]);
 
-    if (error) {
-      alert("Error sending message: " + error.message);
-      return;
+      if (error) {
+        alert("Error sending message: " + error.message);
+        return;
+      }
+
+      input.value = "";
+      await loadMessages();
+
+    } catch (err) {
+      alert("Error sending message: " + err.message);
     }
-
-    input.value = "";
-    await loadMessages();
   }
 
   showHome();
