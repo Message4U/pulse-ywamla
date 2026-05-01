@@ -32,7 +32,6 @@
       margin-bottom: 18px;
     }
 
-    /* TRIANGLE WRAP */
     .triangle-wrap {
       position: relative;
       width: 100%;
@@ -46,7 +45,6 @@
       border-radius: 20px;
     }
 
-    /* CLICK ZONES */
     .tap-zone {
       position: absolute;
       display: block;
@@ -72,13 +70,6 @@
       width: 45%;
       height: 55%;
     }
-
-    /* Optional: for debugging click areas (remove later) */
-    /*
-    .tap-zone {
-      background: rgba(255,0,0,0.2);
-    }
-    */
 
     .section-title {
       font-weight: bold;
@@ -127,13 +118,13 @@
     <h1>PULSE</h1>
     <div class="subtitle">YWAM Los Angeles</div>
 
-    <!-- TRIANGLE WITH CLICK ZONES -->
+    <!-- TRIANGLE WITH REAL NAVIGATION -->
     <div class="triangle-wrap">
       <img src="triangle.png" class="triangle" alt="YWAM LA Triangle">
 
-      <a href="#campus" class="tap-zone campus-zone"></a>
-      <a href="#go" class="tap-zone go-zone"></a>
-      <a href="#uofn" class="tap-zone uofn-zone"></a>
+      <a href="campus.html" class="tap-zone campus-zone"></a>
+      <a href="go.html" class="tap-zone go-zone"></a>
+      <a href="uofn.html" class="tap-zone uofn-zone"></a>
     </div>
 
     <!-- ANNOUNCEMENTS -->
@@ -156,11 +147,6 @@
       <strong>Intercession</strong>
       <div class="small">Friday · 6:00 AM</div>
     </div>
-
-    <!-- TARGET SECTIONS (for clicks) -->
-    <div id="campus"></div>
-    <div id="go"></div>
-    <div id="uofn"></div>
 
   </div>
 
