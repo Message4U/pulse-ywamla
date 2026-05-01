@@ -16,7 +16,7 @@
     h1 { text-align:center; margin:18px 0 4px; font-size:34px; letter-spacing:1px; }
     h2 { text-align:center; }
     .subtitle { text-align:center; color:#777; font-size:13px; margin-bottom:18px; }
-    .section-title { font-weight:bold; margin:20px 0 10px; font-size:15px; text-transform:uppercase; }
+    .section-title { font-weight:bold; margin:20px 0 10px; font-size:15px; text-transform:uppercase; letter-spacing:.5px; }
     .card { background:white; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); cursor:pointer; }
     .small { color:#666; font-size:13px; margin-top:4px; }
     .back { margin-bottom:16px; display:inline-block; color:#f97316; font-weight:bold; cursor:pointer; }
@@ -25,18 +25,173 @@
     .secondary { background:#16213e; }
     .link { color:#f97316; font-weight:bold; cursor:pointer; }
     .nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; z-index:10; }
-    .nav div { cursor:pointer; }
+    .nav div { cursor:pointer; color:#6b7280; font-weight:bold; text-align:center; }
     .triangle-wrap { position:relative; width:100%; max-width:340px; margin:0 auto 22px; }
     .triangle { width:100%; display:block; border-radius:20px; }
     .tap-zone { position:absolute; display:block; cursor:pointer; }
     .campus-zone { right:0; bottom:18%; width:55%; height:28%; }
     .go-zone { left:0; bottom:8%; width:45%; height:55%; }
     .uofn-zone { top:0; right:16%; width:45%; height:55%; }
-    .chat-input { position:fixed; bottom:48px; left:0; right:0; max-width:430px; margin:auto; padding:10px; background:#f7f7f5; display:flex; gap:8px; z-index:9; }
+    .chat-input { position:fixed; bottom:48px; left:0; right:0; max-width:430px; margin:auto; padding:10px; background:#ffffff; display:flex; gap:8px; z-index:9; }
     .chat-input input { flex:1; margin-bottom:0; }
     #messages { margin-bottom:90px; }
     .sender { font-weight:bold; color:#f97316; cursor:pointer; }
     .row { display:flex; gap:8px; }
+
+    .calendar-hero {
+      background:#16213e;
+      color:white;
+      border-radius:24px;
+      padding:22px;
+      margin:10px 0 18px;
+      box-shadow:0 10px 24px rgba(22,33,62,.22);
+    }
+
+    .calendar-hero-top {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:18px;
+    }
+
+    .calendar-label {
+      font-size:13px;
+      opacity:.8;
+      font-weight:bold;
+      text-transform:uppercase;
+      letter-spacing:1px;
+    }
+
+    .calendar-month {
+      font-size:28px;
+      font-weight:900;
+      margin-top:4px;
+    }
+
+    .calendar-pill {
+      background:rgba(255,255,255,.15);
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:bold;
+    }
+
+    .calendar-week {
+      display:grid;
+      grid-template-columns:repeat(7, 1fr);
+      gap:7px;
+    }
+
+    .calendar-day {
+      text-align:center;
+      background:rgba(255,255,255,.12);
+      border-radius:15px;
+      padding:10px 0;
+    }
+
+    .calendar-day span {
+      display:block;
+      font-size:11px;
+      opacity:.75;
+      font-weight:bold;
+      margin-bottom:5px;
+    }
+
+    .calendar-day strong {
+      font-size:19px;
+    }
+
+    .calendar-day.active {
+      background:#f97316;
+      color:white;
+    }
+
+    .calendar-section-head {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin:22px 0 12px;
+    }
+
+    .calendar-section-title {
+      font-size:15px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:1px;
+      color:#16213e;
+    }
+
+    .calendar-section-date {
+      font-size:13px;
+      color:#777;
+      font-weight:bold;
+    }
+
+    .event-list {
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .calendar-event {
+      background:white;
+      border:1px solid #eef0f4;
+      border-radius:20px;
+      padding:16px;
+      box-shadow:0 4px 14px rgba(0,0,0,.06);
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+    }
+
+    .event-time-box {
+      min-width:62px;
+      background:#f4f6f8;
+      border-radius:15px;
+      padding:10px 8px;
+      text-align:center;
+      color:#16213e;
+      font-weight:900;
+      font-size:13px;
+    }
+
+    .event-time-box.orange {
+      background:#fff1e8;
+      color:#f97316;
+    }
+
+    .event-time-box.blue {
+      background:#eef3ff;
+      color:#16213e;
+    }
+
+    .event-info {
+      flex:1;
+    }
+
+    .event-name {
+      font-size:17px;
+      font-weight:900;
+      margin-bottom:5px;
+      color:#111827;
+    }
+
+    .event-meta {
+      font-size:13px;
+      color:#6b7280;
+      line-height:1.4;
+    }
+
+    .event-tag {
+      display:inline-block;
+      margin-top:9px;
+      background:#f7f7f5;
+      color:#555;
+      border-radius:999px;
+      padding:5px 9px;
+      font-size:12px;
+      font-weight:bold;
+    }
   </style>
 </head>
 
@@ -47,7 +202,7 @@
 <div class="nav" id="nav">
   <div onclick="showHome()">Home</div>
   <div onclick="showChatList()">Chat</div>
-  <div onclick="showPage('Calendar','Weekly calendar coming')">Calendar</div>
+  <div onclick="showCalendar()">Calendar</div>
   <div onclick="showPage('Docs','Docs coming')">Docs</div>
 </div>
 
@@ -303,7 +458,72 @@
       <div class="card"><strong>Outreach Team Update</strong><div class="small">Summer Mexico outreach is now full.</div></div>
 
       <div class="section-title">This Week</div>
-      <div class="card"><strong>Intercession</strong><div class="small">Friday · 6:00 AM</div></div>
+      <div class="card" onclick="showCalendar()"><strong>Intercession</strong><div class="small">Friday · 6:00 AM</div></div>
+    `;
+  }
+
+  function showCalendar() {
+    if (!currentUser) return showLogin();
+
+    document.getElementById("nav").style.display = "flex";
+
+    document.getElementById("app").innerHTML = `
+      <h1>Calendar</h1>
+      <div class="subtitle">YWAM LA Weekly Schedule</div>
+
+      <div class="calendar-hero">
+        <div class="calendar-hero-top">
+          <div>
+            <div class="calendar-label">This Week</div>
+            <div class="calendar-month">May 2026</div>
+          </div>
+          <div class="calendar-pill">Today · Fri 1</div>
+        </div>
+
+        <div class="calendar-week">
+          <div class="calendar-day"><span>SUN</span><strong>26</strong></div>
+          <div class="calendar-day"><span>MON</span><strong>27</strong></div>
+          <div class="calendar-day"><span>TUE</span><strong>28</strong></div>
+          <div class="calendar-day"><span>WED</span><strong>29</strong></div>
+          <div class="calendar-day"><span>THU</span><strong>30</strong></div>
+          <div class="calendar-day active"><span>FRI</span><strong>1</strong></div>
+          <div class="calendar-day"><span>SAT</span><strong>2</strong></div>
+        </div>
+      </div>
+
+      <div class="calendar-section-head">
+        <div class="calendar-section-title">Friday Events</div>
+        <div class="calendar-section-date">May 1</div>
+      </div>
+
+      <div class="event-list">
+        <div class="calendar-event">
+          <div class="event-time-box orange">6:00<br>AM</div>
+          <div class="event-info">
+            <div class="event-name">Intercession</div>
+            <div class="event-meta">Prayer room · Open to all staff</div>
+            <div class="event-tag">Spiritual Life</div>
+          </div>
+        </div>
+
+        <div class="calendar-event">
+          <div class="event-time-box blue">10:00<br>AM</div>
+          <div class="event-info">
+            <div class="event-name">Staff Meeting</div>
+            <div class="event-meta">Main Hall · Weekly staff gathering</div>
+            <div class="event-tag">Campus</div>
+          </div>
+        </div>
+
+        <div class="calendar-event">
+          <div class="event-time-box">2:00<br>PM</div>
+          <div class="event-info">
+            <div class="event-name">Outreach Prep</div>
+            <div class="event-meta">Missions office · Mexico team planning</div>
+            <div class="event-tag">Go</div>
+          </div>
+        </div>
+      </div>
     `;
   }
 
