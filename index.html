@@ -15,26 +15,24 @@
     .app { max-width:430px; margin:auto; padding:18px 18px 100px; }
     h1 { text-align:center; margin:18px 0 4px; font-size:34px; letter-spacing:1px; }
     .subtitle { text-align:center; color:#777; font-size:13px; margin-bottom:18px; }
+    .section-title { font-weight:bold; margin:20px 0 10px; font-size:15px; text-transform:uppercase; }
+    .card { background:white; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); cursor:pointer; }
+    .small { color:#666; font-size:13px; margin-top:4px; }
+    .back { margin-bottom:16px; display:inline-block; color:#f97316; font-weight:bold; cursor:pointer; }
+    .nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; z-index:10; }
+    .nav div { cursor:pointer; }
     .triangle-wrap { position:relative; width:100%; max-width:340px; margin:0 auto 22px; }
     .triangle { width:100%; display:block; border-radius:20px; }
     .tap-zone { position:absolute; display:block; cursor:pointer; }
     .campus-zone { right:0; bottom:18%; width:55%; height:28%; }
     .go-zone { left:0; bottom:8%; width:45%; height:55%; }
     .uofn-zone { top:0; right:16%; width:45%; height:55%; }
-    .section-title { font-weight:bold; margin:20px 0 10px; font-size:15px; text-transform:uppercase; }
-    .card { background:white; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); }
-    .small { color:#666; font-size:13px; margin-top:4px; }
-    .back { margin-bottom:16px; display:inline-block; color:#f97316; font-weight:bold; cursor:pointer; }
-    .nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; z-index:10; }
-    .nav div { cursor:pointer; }
     .chat-input { position:fixed; bottom:48px; left:0; right:0; max-width:430px; margin:auto; padding:10px; background:#f7f7f5; display:flex; gap:8px; z-index:9; }
     .chat-input input { flex:1; padding:10px; border-radius:10px; border:1px solid #ccc; }
-    .chat-input button { padding:10px 14px; border:none; background:#f97316; color:white; border-radius:10px; }
-    .channel-row { display:flex; gap:8px; overflow-x:auto; margin:15px 0; }
-    .channel-btn { padding:9px 12px; background:white; border-radius:999px; border:1px solid #ddd; white-space:nowrap; cursor:pointer; }
-    .channel-btn.active { background:#16213e; color:white; }
-    .name-box { margin-bottom:12px; }
-    .name-box input { width:100%; padding:10px; border-radius:10px; border:1px solid #ccc; box-sizing:border-box; }
+    button { padding:10px 14px; border:none; background:#f97316; color:white; border-radius:10px; }
+    input { padding:10px; border-radius:10px; border:1px solid #ccc; box-sizing:border-box; }
+    .name-input { width:100%; margin-bottom:12px; }
+    #messages { margin-bottom:90px; }
   </style>
 </head>
 
@@ -44,7 +42,7 @@
 
 <div class="nav">
   <div onclick="showHome()">Home</div>
-  <div onclick="showChat('general')">Chat</div>
+  <div onclick="showChatList()">Chat</div>
   <div onclick="showPage('Calendar','Weekly calendar coming')">Calendar</div>
   <div onclick="showPage('Docs','Docs coming')">Docs</div>
 </div>
@@ -54,20 +52,21 @@
   const SUPABASE_KEY = "sb_publishable_uGTC509N0reeUKs-5SviUQ_2VJvhEa1";
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  let currentChannel = "general";
+  let currentConversationId = null;
+  let currentConversationName = "";
 
-  function getName() {
+  function getMyName() {
     let name = localStorage.getItem("pulse_name");
-    if (!name) {
-      name = prompt("Enter your name for chat:");
-      if (name) localStorage.setItem("pulse_name", name);
+    while (!name || name.trim() === "") {
+      name = prompt("Enter your name:");
+      if (name) localStorage.setItem("pulse_name", name.trim());
     }
-    return name || "Anonymous";
+    return name.trim();
   }
 
   function saveName() {
     const input = document.getElementById("nameInput");
-    localStorage.setItem("pulse_name", input.value.trim() || "Anonymous");
+    if (input.value.trim()) localStorage.setItem("pulse_name", input.value.trim());
   }
 
   function showHome() {
@@ -77,9 +76,9 @@
 
       <div class="triangle-wrap">
         <img src="triangle.png" class="triangle" alt="YWAM LA Triangle">
-        <div onclick="showArea('Campus','Life & Operations','campus')" class="tap-zone campus-zone"></div>
-        <div onclick="showArea('Go','Outreach & Missions','go')" class="tap-zone go-zone"></div>
-        <div onclick="showArea('UofN','Training & Schools','uofn')" class="tap-zone uofn-zone"></div>
+        <div onclick="showArea('Campus','Life & Operations')" class="tap-zone campus-zone"></div>
+        <div onclick="showArea('Go','Outreach & Missions')" class="tap-zone go-zone"></div>
+        <div onclick="showArea('UofN','Training & Schools')" class="tap-zone uofn-zone"></div>
       </div>
 
       <div class="section-title">Announcements</div>
@@ -91,14 +90,14 @@
     `;
   }
 
-  function showArea(title, subtitle, channel) {
+  function showArea(title, subtitle) {
     document.getElementById("app").innerHTML = `
       <span class="back" onclick="showHome()">← Back</span>
       <h1>${title}</h1>
       <div class="subtitle">${subtitle}</div>
       <div class="card"><strong>Leaders</strong><div class="small">Add leaders and team members here.</div></div>
       <div class="card"><strong>Updates</strong><div class="small">Area-specific announcements will show here.</div></div>
-      <div class="card" onclick="showChat('${channel}')"><strong>Open ${title} Chat</strong><div class="small">Tap to enter this channel.</div></div>
+      <div class="card" onclick="showChatList()"><strong>Open Chat</strong><div class="small">Go to conversation list.</div></div>
     `;
   }
 
@@ -110,29 +109,110 @@
     `;
   }
 
-  async function showChat(channel) {
-    currentChannel = channel;
-    const savedName = localStorage.getItem("pulse_name") || "";
+  async function showChatList() {
+    const myName = getMyName();
 
     document.getElementById("app").innerHTML = `
-      <span class="back" onclick="showHome()">← Back</span>
-      <h1>Chat</h1>
+      <h1>Chats</h1>
+      <div class="subtitle">Conversations, groups, and private messages</div>
 
-      <div class="name-box">
-        <input id="nameInput" placeholder="Your name" value="${savedName}" oninput="saveName()">
+      <input id="nameInput" class="name-input" placeholder="Your name" value="${myName}" oninput="saveName()">
+
+      <div class="section-title">Official & Group Chats</div>
+      <div id="conversationList"><div class="card">Loading chats...</div></div>
+
+      <div class="section-title">Start Private Chat</div>
+      <div class="card">
+        <input id="privateName" placeholder="Person's name" style="width:100%; margin-bottom:8px;">
+        <button onclick="startPrivateChat()">Start Chat</button>
       </div>
+    `;
 
-      <div class="channel-row">
-        <div class="channel-btn ${channel === 'general' ? 'active' : ''}" onclick="showChat('general')">General</div>
-        <div class="channel-btn ${channel === 'campus' ? 'active' : ''}" onclick="showChat('campus')">Campus</div>
-        <div class="channel-btn ${channel === 'go' ? 'active' : ''}" onclick="showChat('go')">Go</div>
-        <div class="channel-btn ${channel === 'uofn' ? 'active' : ''}" onclick="showChat('uofn')">UofN</div>
+    await loadConversationList();
+  }
+
+  async function loadConversationList() {
+    const box = document.getElementById("conversationList");
+    const myName = getMyName();
+
+    const { data, error } = await db
+      .from("conversations")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      box.innerHTML = `<div class="card">Error loading chats: ${error.message}</div>`;
+      return;
+    }
+
+    const visible = data.filter(c => {
+      if (c.type !== "dm") return true;
+      return c.name.includes(myName);
+    });
+
+    box.innerHTML = visible.map(c => `
+      <div class="card" onclick="openConversation('${c.id}', '${escapeText(c.name)}')">
+        <strong>${c.name}</strong>
+        <div class="small">${c.type === "dm" ? "Private conversation" : c.type}</div>
       </div>
+    `).join("");
+  }
 
+  async function startPrivateChat() {
+    const myName = getMyName();
+    const otherInput = document.getElementById("privateName");
+    const otherName = otherInput.value.trim();
+
+    if (!otherName) {
+      alert("Enter a name first.");
+      return;
+    }
+
+    const names = [myName, otherName].sort();
+    const dmName = `${names[0]} ↔ ${names[1]}`;
+
+    const { data: existing } = await db
+      .from("conversations")
+      .select("*")
+      .eq("name", dmName)
+      .eq("type", "dm")
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      openConversation(existing[0].id, existing[0].name);
+      return;
+    }
+
+    const { data, error } = await db
+      .from("conversations")
+      .insert([{ name: dmName, type: "dm", created_by_name: myName }])
+      .select()
+      .single();
+
+    if (error) {
+      alert("Error creating private chat: " + error.message);
+      return;
+    }
+
+    await db.from("conversation_members").insert([
+      { conversation_id: data.id, member_name: myName },
+      { conversation_id: data.id, member_name: otherName }
+    ]);
+
+    openConversation(data.id, data.name);
+  }
+
+  async function openConversation(id, name) {
+    currentConversationId = id;
+    currentConversationName = name;
+
+    document.getElementById("app").innerHTML = `
+      <span class="back" onclick="showChatList()">← Chats</span>
+      <h1>${name}</h1>
       <div id="messages"><div class="card">Loading messages...</div></div>
 
       <div class="chat-input">
-        <input id="messageInput" placeholder="Type message..." />
+        <input id="messageInput" placeholder="Type message...">
         <button onclick="sendMessage()">Send</button>
       </div>
     `;
@@ -142,12 +222,12 @@
 
   async function loadMessages() {
     const box = document.getElementById("messages");
-    if (!box) return;
+    if (!box || !currentConversationId) return;
 
     const { data, error } = await db
       .from("messages")
       .select("*")
-      .eq("channel", currentChannel)
+      .eq("conversation_id", currentConversationId)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -156,7 +236,7 @@
     }
 
     if (!data || data.length === 0) {
-      box.innerHTML = `<div class="card">No messages yet in this channel.</div>`;
+      box.innerHTML = `<div class="card">No messages yet.</div>`;
       return;
     }
 
@@ -166,23 +246,27 @@
         <div class="small">${msg.content}</div>
       </div>
     `).join("");
+
+    setTimeout(() => {
+      window.scrollTo(0, document.body.scrollHeight);
+    }, 50);
   }
 
   async function sendMessage() {
     const input = document.getElementById("messageInput");
     const text = input.value.trim();
-    const name = getName();
+    const myName = getMyName();
 
-    if (!text) return;
+    if (!text || !currentConversationId) return;
 
     const { error } = await db.from("messages").insert([{
       content: text,
-      sender_name: name,
-      channel: currentChannel
+      sender_name: myName,
+      conversation_id: currentConversationId
     }]);
 
     if (error) {
-      alert("Error: " + error.message);
+      alert("Error sending message: " + error.message);
       return;
     }
 
@@ -190,9 +274,16 @@
     await loadMessages();
   }
 
-  db.channel("pulse-messages")
+  function escapeText(text) {
+    return String(text).replace(/'/g, "\\'");
+  }
+
+  db.channel("pulse-conversations")
     .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
       loadMessages();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
+      if (document.getElementById("conversationList")) loadConversationList();
     })
     .subscribe();
 
