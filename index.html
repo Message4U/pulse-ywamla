@@ -1,12 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PULSE</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/main.jsx"></script>
-  </body>
+<html>
+<head>
+  <title>PULSE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; background:#f7f7f5; color:#16213e; }
+    .app { max-width:430px; margin:auto; padding:18px 18px 90px; }
+    h1 { text-align:center; margin:18px 0 4px; font-size:34px; letter-spacing:1px; }
+    .subtitle { text-align:center; color:#777; font-size:13px; margin-bottom:18px; }
+    .triangle { width:100%; max-width:340px; display:block; margin:0 auto 22px; }
+    .section-title { font-weight:bold; margin:20px 0 10px; font-size:15px; text-transform:uppercase; }
+    .card { background:white; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); }
+    .small { color:#666; font-size:13px; margin-top:4px; }
+    .nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; }
+    .nav div:first-child { color:#f97316; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>PULSE</h1>
+    <div class="subtitle">YWAM Los Angeles</div>
+
+    <img src="triangle.png" class="triangle" alt="YWAM LA Triangle">
+
+    <div class="section-title">Announcements</div>
+    <div class="card">
+      <strong>Staff Meeting Reminder</strong>
+      <div class="small">Friday 10am in the Main Hall.</div>
+    </div>
+    <div class="card">
+      <strong>Outreach Team Update</strong>
+      <div class="small">Summer Mexico outreach is now full.</div>
+    </div>
+
+    <div class="section-title">This Week</div>
+    <div class="card">
+      <strong>Intercession</strong>
+      <div class="small">Friday · 6:00 AM</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div>Home</div>
+    <div>Chat</div>
+    <div>Calendar</div>
+    <div>Docs</div>
+  </div>
+</body>
 </html>
