@@ -8,7 +8,7 @@
   <link rel="icon" href="icon.png">
   <meta name="theme-color" content="#16213e">
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     body { margin:0; font-family:Arial,sans-serif; background:#f7f7f5; color:#16213e; }
@@ -28,7 +28,7 @@
     .nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; }
     .nav div { cursor:pointer; }
     .active { color:#f97316; font-weight:bold; }
-    #messages { margin-bottom:80px; }
+    #messages { margin-bottom:90px; }
     .chat-input { position:fixed; bottom:48px; left:0; right:0; max-width:430px; margin:auto; padding:10px; background:#f7f7f5; display:flex; gap:8px; }
     .chat-input input { flex:1; padding:10px; border-radius:10px; border:1px solid #ccc; }
     .chat-input button { padding:10px 14px; border:none; background:#f97316; color:white; border-radius:10px; }
@@ -49,7 +49,15 @@
 <script>
   const SUPABASE_URL = "https://liveknqrjgmumjgwkuh.supabase.co";
   const SUPABASE_KEY = "sb_publishable_uGTC509N0reeUKs-5SviUQ_2VJvhEa1";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let supabaseClient = null;
+
+  function getSupabase() {
+    if (!supabaseClient) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+    return supabaseClient;
+  }
 
   function showHome() {
     document.getElementById("app").innerHTML = `
@@ -95,12 +103,13 @@
     document.getElementById("app").innerHTML = `
       <span class="back" onclick="showHome()">← Back</span>
       <h1>Chat</h1>
-      <div id="messages"></div>
+      <div id="messages"><div class="card">Loading messages...</div></div>
       <div class="chat-input">
         <input id="messageInput" placeholder="Type message..." />
         <button onclick="sendMessage()">Send</button>
       </div>
     `;
+
     await loadMessages();
   }
 
@@ -108,14 +117,15 @@
     const messagesDiv = document.getElementById("messages");
     if (!messagesDiv) return;
 
-    const { data, error } = await supabase
+    const db = getSupabase();
+
+    const { data, error } = await db
       .from("messages")
       .select("*")
       .order("created_at", { ascending: true });
 
     if (error) {
-      messagesDiv.innerHTML = `<div class="card">Error loading messages.</div>`;
-      console.error(error);
+      messagesDiv.innerHTML = `<div class="card">Error loading messages: ${error.message}</div>`;
       return;
     }
 
@@ -129,17 +139,20 @@
     const text = input.value.trim();
     if (!text) return;
 
-    await supabase.from("messages").insert([{ content: text }]);
+    const db = getSupabase();
+
+    const { error } = await db
+      .from("messages")
+      .insert([{ content: text }]);
+
+    if (error) {
+      alert("Error sending message: " + error.message);
+      return;
+    }
+
     input.value = "";
     await loadMessages();
   }
-
-  supabase
-    .channel("messages")
-    .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
-      loadMessages();
-    })
-    .subscribe();
 
   showHome();
 </script>
