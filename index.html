@@ -3,83 +3,169 @@
 <head>
   <title>PULSE</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon.png">
-<meta name="theme-color" content="#16213e">
-  
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png">
+  <meta name="theme-color" content="#16213e">
+
   <style>
     body { margin:0; font-family:Arial,sans-serif; background:#f7f7f5; color:#16213e; }
     .app { max-width:430px; margin:auto; padding:18px 18px 90px; }
     h1 { text-align:center; margin:18px 0 4px; font-size:34px; letter-spacing:1px; }
     .subtitle { text-align:center; color:#777; font-size:13px; margin-bottom:18px; }
+
     .triangle-wrap { position:relative; width:100%; max-width:340px; margin:0 auto 22px; }
     .triangle { width:100%; display:block; border-radius:20px; }
+
     .tap-zone { position:absolute; display:block; cursor:pointer; }
     .campus-zone { right:0; bottom:18%; width:55%; height:28%; }
     .go-zone { left:0; bottom:8%; width:45%; height:55%; }
     .uofn-zone { top:0; right:16%; width:45%; height:55%; }
+
     .section-title { font-weight:bold; margin:20px 0 10px; font-size:15px; text-transform:uppercase; }
-    .card { background:white; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); }
+
+    .card {
+      background:white;
+      border-radius:14px;
+      padding:14px;
+      margin-bottom:10px;
+      box-shadow:0 2px 8px rgba(0,0,0,.07);
+    }
+
     .small { color:#666; font-size:13px; margin-top:4px; }
-    .back { margin-bottom:16px; display:inline-block; color:#f97316; font-weight:bold; cursor:pointer; }
-    .nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; }
+
+    .back {
+      margin-bottom:16px;
+      display:inline-block;
+      color:#f97316;
+      font-weight:bold;
+      cursor:pointer;
+    }
+
+    .nav {
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      background:white;
+      border-top:1px solid #ddd;
+      display:flex;
+      justify-content:space-around;
+      padding:12px 0;
+      font-size:13px;
+    }
+
     .active { color:#f97316; font-weight:bold; }
+
+    input {
+      width:70%;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid #ccc;
+    }
+
+    button {
+      padding:10px 14px;
+      border:none;
+      background:#f97316;
+      color:white;
+      border-radius:10px;
+    }
   </style>
 </head>
+
 <body>
 
 <div class="app" id="app"></div>
 
 <div class="nav">
   <div class="active" onclick="showHome()">Home</div>
-  <div onclick="showPage('Chat', 'Internal chat will be built here.')">Chat</div>
-  <div onclick="showPage('Calendar', 'Weekly calendar will live here.')">Calendar</div>
-  <div onclick="showPage('Docs', 'Links to staff notes and Google Drive docs.')">Docs</div>
+  <div onclick="showChat()">Chat</div>
+  <div onclick="showPage('Calendar','Weekly calendar coming')">Calendar</div>
+  <div onclick="showPage('Docs','Docs coming')">Docs</div>
 </div>
 
 <script>
-  function showHome() {
-    document.getElementById("app").innerHTML = `
-      <h1>PULSE</h1>
-      <div class="subtitle">YWAM Los Angeles</div>
+let messages = [];
 
-      <div class="triangle-wrap">
-        <img src="triangle.png" class="triangle" alt="YWAM LA Triangle">
-        <div onclick="showArea('Campus','Life & Operations')" class="tap-zone campus-zone"></div>
-        <div onclick="showArea('Go','Outreach & Missions')" class="tap-zone go-zone"></div>
-        <div onclick="showArea('UofN','Training & Schools')" class="tap-zone uofn-zone"></div>
-      </div>
+function showHome() {
+  document.getElementById("app").innerHTML = `
+    <h1>PULSE</h1>
+    <div class="subtitle">YWAM Los Angeles</div>
 
-      <div class="section-title">Announcements</div>
-      <div class="card"><strong>Staff Meeting Reminder</strong><div class="small">Friday 10am in the Main Hall.</div></div>
-      <div class="card"><strong>Outreach Team Update</strong><div class="small">Summer Mexico outreach is now full.</div></div>
+    <div class="triangle-wrap">
+      <img src="triangle.png" class="triangle">
+      <div onclick="showArea('Campus','Life & Operations')" class="tap-zone campus-zone"></div>
+      <div onclick="showArea('Go','Outreach & Missions')" class="tap-zone go-zone"></div>
+      <div onclick="showArea('UofN','Training & Schools')" class="tap-zone uofn-zone"></div>
+    </div>
 
-      <div class="section-title">This Week</div>
-      <div class="card"><strong>Intercession</strong><div class="small">Friday · 6:00 AM</div></div>
-    `;
-  }
+    <div class="section-title">Announcements</div>
+    <div class="card"><strong>Staff Meeting</strong><div class="small">Friday 10am</div></div>
 
-  function showArea(title, subtitle) {
-    document.getElementById("app").innerHTML = `
-      <span class="back" onclick="showHome()">← Back</span>
-      <h1>${title}</h1>
-      <div class="subtitle">${subtitle}</div>
-      <div class="card"><strong>Leaders</strong><div class="small">Add leaders and team members here.</div></div>
-      <div class="card"><strong>Updates</strong><div class="small">Area-specific announcements will show here.</div></div>
-      <div class="card"><strong>Open Chat</strong><div class="small">Connect this to chat later.</div></div>
-    `;
-  }
+    <div class="section-title">This Week</div>
+    <div class="card"><strong>Intercession</strong><div class="small">Friday 6AM</div></div>
+  `;
+}
 
-  function showPage(title, text) {
-    document.getElementById("app").innerHTML = `
-      <span class="back" onclick="showHome()">← Back</span>
-      <h1>${title}</h1>
-      <div class="card">${text}</div>
-    `;
-  }
+function showArea(title, subtitle) {
+  document.getElementById("app").innerHTML = `
+    <span class="back" onclick="showHome()">← Back</span>
+    <h1>${title}</h1>
+    <div class="subtitle">${subtitle}</div>
 
-  showHome();
+    <div class="card">Leaders and team here</div>
+    <div class="card" onclick="showChat()">Open Chat</div>
+  `;
+}
+
+function showChat() {
+  document.getElementById("app").innerHTML = `
+    <span class="back" onclick="showHome()">← Back</span>
+    <h1>Chat</h1>
+
+    <div id="messages"></div>
+
+    <div style="position:fixed; bottom:60px; left:0; right:0; max-width:430px; margin:auto; padding:10px; background:#f7f7f5;">
+      <input id="msgInput" placeholder="Type message...">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  `;
+
+  updateMessages();
+}
+
+function sendMessage() {
+  const input = document.getElementById("msgInput");
+  const text = input.value.trim();
+
+  if (!text) return;
+
+  messages.push(text);
+  input.value = "";
+
+  updateMessages();
+}
+
+function updateMessages() {
+  const container = document.getElementById("messages");
+
+  if (!container) return;
+
+  container.innerHTML = messages
+    .map(msg => `<div class="card">${msg}</div>`)
+    .join("");
+}
+
+function showPage(title, text) {
+  document.getElementById("app").innerHTML = `
+    <span class="back" onclick="showHome()">← Back</span>
+    <h1>${title}</h1>
+    <div class="card">${text}</div>
+  `;
+}
+
+showHome();
 </script>
 
 </body>
