@@ -27,10 +27,14 @@
     .back { margin-bottom:16px; display:inline-block; color:#f97316; font-weight:bold; cursor:pointer; }
     .nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; z-index:10; }
     .nav div { cursor:pointer; }
-    #messages { margin-bottom:90px; }
     .chat-input { position:fixed; bottom:48px; left:0; right:0; max-width:430px; margin:auto; padding:10px; background:#f7f7f5; display:flex; gap:8px; z-index:9; }
     .chat-input input { flex:1; padding:10px; border-radius:10px; border:1px solid #ccc; }
     .chat-input button { padding:10px 14px; border:none; background:#f97316; color:white; border-radius:10px; }
+    .channel-row { display:flex; gap:8px; overflow-x:auto; margin:15px 0; }
+    .channel-btn { padding:9px 12px; background:white; border-radius:999px; border:1px solid #ddd; white-space:nowrap; cursor:pointer; }
+    .channel-btn.active { background:#16213e; color:white; }
+    .name-box { margin-bottom:12px; }
+    .name-box input { width:100%; padding:10px; border-radius:10px; border:1px solid #ccc; box-sizing:border-box; }
   </style>
 </head>
 
@@ -40,7 +44,7 @@
 
 <div class="nav">
   <div onclick="showHome()">Home</div>
-  <div onclick="showChat()">Chat</div>
+  <div onclick="showChat('general')">Chat</div>
   <div onclick="showPage('Calendar','Weekly calendar coming')">Calendar</div>
   <div onclick="showPage('Docs','Docs coming')">Docs</div>
 </div>
@@ -48,14 +52,22 @@
 <script>
   const SUPABASE_URL = "https://livkeknqrjgmumjgwkuh.supabase.co";
   const SUPABASE_KEY = "sb_publishable_uGTC509N0reeUKs-5SviUQ_2VJvhEa1";
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  let supabaseClient = null;
+  let currentChannel = "general";
 
-  function getSupabase() {
-    if (!supabaseClient) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  function getName() {
+    let name = localStorage.getItem("pulse_name");
+    if (!name) {
+      name = prompt("Enter your name for chat:");
+      if (name) localStorage.setItem("pulse_name", name);
     }
-    return supabaseClient;
+    return name || "Anonymous";
+  }
+
+  function saveName() {
+    const input = document.getElementById("nameInput");
+    localStorage.setItem("pulse_name", input.value.trim() || "Anonymous");
   }
 
   function showHome() {
@@ -65,9 +77,9 @@
 
       <div class="triangle-wrap">
         <img src="triangle.png" class="triangle" alt="YWAM LA Triangle">
-        <div onclick="showArea('Campus','Life & Operations')" class="tap-zone campus-zone"></div>
-        <div onclick="showArea('Go','Outreach & Missions')" class="tap-zone go-zone"></div>
-        <div onclick="showArea('UofN','Training & Schools')" class="tap-zone uofn-zone"></div>
+        <div onclick="showArea('Campus','Life & Operations','campus')" class="tap-zone campus-zone"></div>
+        <div onclick="showArea('Go','Outreach & Missions','go')" class="tap-zone go-zone"></div>
+        <div onclick="showArea('UofN','Training & Schools','uofn')" class="tap-zone uofn-zone"></div>
       </div>
 
       <div class="section-title">Announcements</div>
@@ -79,14 +91,14 @@
     `;
   }
 
-  function showArea(title, subtitle) {
+  function showArea(title, subtitle, channel) {
     document.getElementById("app").innerHTML = `
       <span class="back" onclick="showHome()">← Back</span>
       <h1>${title}</h1>
       <div class="subtitle">${subtitle}</div>
       <div class="card"><strong>Leaders</strong><div class="small">Add leaders and team members here.</div></div>
       <div class="card"><strong>Updates</strong><div class="small">Area-specific announcements will show here.</div></div>
-      <div class="card" onclick="showChat()"><strong>Open Chat</strong><div class="small">Tap to enter the shared chat.</div></div>
+      <div class="card" onclick="showChat('${channel}')"><strong>Open ${title} Chat</strong><div class="small">Tap to enter this channel.</div></div>
     `;
   }
 
@@ -98,11 +110,27 @@
     `;
   }
 
-  async function showChat() {
+  async function showChat(channel) {
+    currentChannel = channel;
+    const savedName = localStorage.getItem("pulse_name") || "";
+
     document.getElementById("app").innerHTML = `
       <span class="back" onclick="showHome()">← Back</span>
       <h1>Chat</h1>
+
+      <div class="name-box">
+        <input id="nameInput" placeholder="Your name" value="${savedName}" oninput="saveName()">
+      </div>
+
+      <div class="channel-row">
+        <div class="channel-btn ${channel === 'general' ? 'active' : ''}" onclick="showChat('general')">General</div>
+        <div class="channel-btn ${channel === 'campus' ? 'active' : ''}" onclick="showChat('campus')">Campus</div>
+        <div class="channel-btn ${channel === 'go' ? 'active' : ''}" onclick="showChat('go')">Go</div>
+        <div class="channel-btn ${channel === 'uofn' ? 'active' : ''}" onclick="showChat('uofn')">UofN</div>
+      </div>
+
       <div id="messages"><div class="card">Loading messages...</div></div>
+
       <div class="chat-input">
         <input id="messageInput" placeholder="Type message..." />
         <button onclick="sendMessage()">Send</button>
@@ -113,61 +141,60 @@
   }
 
   async function loadMessages() {
-    const messagesDiv = document.getElementById("messages");
-    if (!messagesDiv) return;
+    const box = document.getElementById("messages");
+    if (!box) return;
 
-    try {
-      const db = getSupabase();
+    const { data, error } = await db
+      .from("messages")
+      .select("*")
+      .eq("channel", currentChannel)
+      .order("created_at", { ascending: true });
 
-      const { data, error } = await db
-        .from("messages")
-        .select("*")
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        messagesDiv.innerHTML = `<div class="card">Error loading messages: ${error.message}</div>`;
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        messagesDiv.innerHTML = `<div class="card">No messages yet.</div>`;
-        return;
-      }
-
-      messagesDiv.innerHTML = data.map(msg => `
-        <div class="card">${msg.content}</div>
-      `).join("");
-
-    } catch (err) {
-      messagesDiv.innerHTML = `<div class="card">Connection error: ${err.message}</div>`;
+    if (error) {
+      box.innerHTML = `<div class="card">Error: ${error.message}</div>`;
+      return;
     }
+
+    if (!data || data.length === 0) {
+      box.innerHTML = `<div class="card">No messages yet in this channel.</div>`;
+      return;
+    }
+
+    box.innerHTML = data.map(msg => `
+      <div class="card">
+        <strong>${msg.sender_name || "Anonymous"}</strong>
+        <div class="small">${msg.content}</div>
+      </div>
+    `).join("");
   }
 
   async function sendMessage() {
     const input = document.getElementById("messageInput");
     const text = input.value.trim();
+    const name = getName();
 
     if (!text) return;
 
-    try {
-      const db = getSupabase();
+    const { error } = await db.from("messages").insert([{
+      content: text,
+      sender_name: name,
+      channel: currentChannel
+    }]);
 
-      const { error } = await db
-        .from("messages")
-        .insert([{ content: text }]);
-
-      if (error) {
-        alert("Error sending message: " + error.message);
-        return;
-      }
-
-      input.value = "";
-      await loadMessages();
-
-    } catch (err) {
-      alert("Error sending message: " + err.message);
+    if (error) {
+      alert("Error: " + error.message);
+      return;
     }
+
+    input.value = "";
+    await loadMessages();
   }
+
+  db.channel("pulse-messages")
+    .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
+      loadMessages();
+    })
+    .subscribe();
 
   showHome();
 </script>
