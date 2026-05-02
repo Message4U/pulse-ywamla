@@ -24,34 +24,38 @@ function showPagesMenu() {
     <h1>Pages</h1>
     <div class="subtitle">YWAM LA resources</div>
 
-    <div class="card" onclick="showPage('YWAM LA Staff','YWAM LA Staff page coming soon.')">
-      <strong>YWAM LA Staff</strong>
-      <div class="small">Staff directory and team information.</div>
-    </div>
+    <div class="pages-grid">
 
-    <div class="card" onclick="showPage('Bulletin Board','Bulletin Board coming soon.')">
-      <strong>Bulletin Board</strong>
-      <div class="small">Campus updates, needs, and announcements.</div>
-    </div>
+      <div class="page-tile" onclick="showPage('YWAM LA Staff','YWAM LA Staff page coming soon.')">
+        <div class="page-icon">👥</div>
+        <div class="page-title">Staff</div>
+      </div>
 
-    <div class="card" onclick="showPage('Drives','Drives page coming soon.')">
-      <strong>Drives</strong>
-      <div class="small">Shared folders and useful links.</div>
-    </div>
+      <div class="page-tile" onclick="showPage('Bulletin Board','Bulletin Board coming soon.')">
+        <div class="page-icon">📌</div>
+        <div class="page-title">Bulletin</div>
+      </div>
 
-    <div class="card" onclick="showPage('Lockup','Lockup page coming soon.')">
-      <strong>Lockup</strong>
-      <div class="small">Lockup info and procedures.</div>
-    </div>
+      <div class="page-tile" onclick="showPage('Drives','Drives page coming soon.')">
+        <div class="page-icon">📁</div>
+        <div class="page-title">Drives</div>
+      </div>
 
-    <div class="card" onclick="showPage('Worship & Intercession','Worship & Intercession page coming soon.')">
-      <strong>Worship & Intercession</strong>
-      <div class="small">Schedules, teams, and gatherings.</div>
-    </div>
+      <div class="page-tile" onclick="showPage('Lockup','Lockup page coming soon.')">
+        <div class="page-icon">🔒</div>
+        <div class="page-title">Lockup</div>
+      </div>
 
-    <div class="card" onclick="showPage('Prayers and Praises','Prayers and Praises page coming soon.')">
-      <strong>Prayers and Praises</strong>
-      <div class="small">Prayer requests and praise reports.</div>
+      <div class="page-tile" onclick="showPage('Worship & Intercession','Worship & Intercession page coming soon.')">
+        <div class="page-icon">🎵</div>
+        <div class="page-title">Worship</div>
+      </div>
+
+      <div class="page-tile" onclick="showPage('Prayers and Praises','Prayers and Praises page coming soon.')">
+        <div class="page-icon">🙏</div>
+        <div class="page-title">Prayer</div>
+      </div>
+
     </div>
   `;
 }
