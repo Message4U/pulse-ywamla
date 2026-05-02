@@ -1,1 +1,146 @@
-style.css
+body { margin:0; font-family:Arial,sans-serif; background:#ffffff; color:#16213e; }
+.app { max-width:430px; margin:auto; padding:10px 18px 100px; }
+h1 { text-align:center; margin:14px 0 4px; font-size:34px; letter-spacing:1px; }
+h2 { text-align:center; }
+.subtitle { text-align:center; color:#777; font-size:13px; margin-bottom:12px; }
+.section-title { font-weight:bold; margin:22px 0 10px; font-size:15px; text-transform:uppercase; color:#6b7280; letter-spacing:.5px; }
+.card { background:white; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); cursor:pointer; }
+.small { color:#666; font-size:13px; margin-top:4px; }
+.back { margin-bottom:16px; display:inline-block; color:#f97316; font-weight:bold; cursor:pointer; }
+input { width:100%; padding:12px; border-radius:10px; border:1px solid #ccc; box-sizing:border-box; margin-bottom:10px; }
+button { padding:11px 14px; border:none; background:#f97316; color:white; border-radius:10px; font-weight:bold; cursor:pointer; }
+.secondary { background:#16213e; }
+.link { color:#f97316; font-weight:bold; cursor:pointer; }
+.nav { position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:12px 0; font-size:13px; z-index:10; }
+.nav div { cursor:pointer; color:#6b7280; font-weight:bold; text-align:center; }
+.triangle-wrap { position:relative; width:100%; max-width:420px; margin:0 auto 18px; }
+.triangle { width:100%; display:block; border-radius:20px; }
+.tap-zone { position:absolute; display:block; cursor:pointer; }
+.campus-zone { right:0; bottom:18%; width:55%; height:28%; }
+.go-zone { left:0; bottom:8%; width:45%; height:55%; }
+.uofn-zone { top:0; right:16%; width:45%; height:55%; }
+.chat-input { position:fixed; bottom:48px; left:0; right:0; max-width:430px; margin:auto; padding:10px; background:#ffffff; display:flex; gap:8px; z-index:9; }
+.chat-input input { flex:1; margin-bottom:0; }
+#messages { margin-bottom:90px; }
+.sender { font-weight:bold; color:#f97316; cursor:pointer; }
+.row { display:flex; gap:8px; }
+
+.home-week-widget {
+background:transparent;
+border:none;
+border-radius:0;
+padding:0;
+margin:26px 0 0;
+box-shadow:none;
+cursor:pointer;
+}
+
+.home-week-header {
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:14px;
+}
+
+.home-week-left {
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.home-week-icon { color:#2fa99a; font-size:24px; }
+
+.home-week-title {
+font-size:24px;
+font-weight:900;
+color:#111827;
+letter-spacing:.5px;
+text-transform:uppercase;
+}
+
+.home-week-range {
+color:#6b7280;
+font-size:16px;
+font-weight:800;
+}
+
+.home-week-days {
+display:grid;
+grid-template-columns:repeat(7, 1fr);
+gap:7px;
+margin-bottom:18px;
+}
+
+.home-week-day {
+background:#f0f2f5;
+border-radius:16px;
+padding:10px 0;
+text-align:center;
+color:#111827;
+}
+
+.home-week-day span {
+display:block;
+font-size:11px;
+font-weight:900;
+margin-bottom:5px;
+}
+
+.home-week-day strong {
+display:block;
+font-size:22px;
+font-weight:900;
+}
+
+.home-week-day.active {
+background:#005A9C;
+color:white;
+}
+
+.today-event-card {
+background:#ffffff;
+border:1px solid #e5e7eb;
+border-radius:20px;
+padding:16px 16px 16px 18px;
+display:flex;
+align-items:flex-start;
+gap:14px;
+box-shadow:0 3px 10px rgba(15,23,42,.07);
+}
+
+.today-event-bar {
+width:5px;
+min-height:56px;
+border-radius:999px;
+background:#2fa99a;
+flex:none;
+}
+
+.today-event-content { flex:1; }
+
+.today-event-title {
+font-size:20px;
+font-weight:900;
+color:#111827;
+margin-bottom:6px;
+}
+
+.today-event-time {
+font-size:15px;
+font-weight:700;
+color:#6b7280;
+margin-bottom:8px;
+}
+
+.calendar-status {
+margin-top:12px;
+font-size:12px;
+color:#6b7280;
+text-align:center;
+}
+
+.calendar-event-list {
+display:flex;
+flex-direction:column;
+gap:10px;
+}
