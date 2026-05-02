@@ -177,3 +177,9 @@ gap:10px;
   font-size: 14px;
   color: #16213e;
 }
+.logo {
+  display: block;
+  width: 260px;
+  max-width: 90%;
+  margin: 0 auto 6px;
+}
