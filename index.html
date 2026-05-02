@@ -14,6 +14,7 @@
     body { margin:0; font-family:Arial,sans-serif; background:#ffffff; color:#16213e; }
     .app { max-width:430px; margin:auto; padding:18px 18px 100px; }
     h1 { text-align:center; margin:18px 0 4px; font-size:34px; letter-spacing:1px; }
+    h2 { text-align:center; }
     .subtitle { text-align:center; color:#777; font-size:13px; margin-bottom:18px; }
     .section-title { font-weight:bold; margin:22px 0 10px; font-size:15px; text-transform:uppercase; color:#6b7280; letter-spacing:.5px; }
     .card { background:white; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); cursor:pointer; }
@@ -44,6 +45,7 @@
       padding:18px;
       margin:22px 0;
       box-shadow:0 4px 14px rgba(15,23,42,.08);
+      cursor:pointer;
     }
 
     .home-week-header {
@@ -59,10 +61,7 @@
       gap:10px;
     }
 
-    .home-week-icon {
-      color:#2fa99a;
-      font-size:24px;
-    }
+    .home-week-icon { color:#2fa99a; font-size:24px; }
 
     .home-week-title {
       font-size:24px;
@@ -74,7 +73,7 @@
 
     .home-week-range {
       color:#6b7280;
-      font-size:17px;
+      font-size:16px;
       font-weight:800;
     }
 
@@ -95,19 +94,19 @@
 
     .home-week-day span {
       display:block;
-      font-size:12px;
+      font-size:11px;
       font-weight:900;
       margin-bottom:5px;
     }
 
     .home-week-day strong {
       display:block;
-      font-size:24px;
+      font-size:22px;
       font-weight:900;
     }
 
     .home-week-day.active {
-      background:#17376d;
+      background:#005A9C;
       color:white;
     }
 
@@ -133,16 +132,23 @@
     .today-event-content { flex:1; }
 
     .today-event-title {
-      font-size:21px;
+      font-size:20px;
       font-weight:900;
       color:#111827;
       margin-bottom:6px;
     }
 
     .today-event-time {
-      font-size:16px;
+      font-size:15px;
       font-weight:700;
       color:#6b7280;
+    }
+
+    .calendar-status {
+      margin-top:12px;
+      font-size:12px;
+      color:#6b7280;
+      text-align:center;
     }
 
     .calendar-event-list {
@@ -173,6 +179,7 @@
   let currentProfile = null;
   let currentConversationId = null;
   let calendarEvents = [];
+  let calendarStatus = "Calendar not loaded yet.";
 
   async function init() {
     const hash = window.location.hash || "";
@@ -195,46 +202,79 @@
   }
 
   async function loadCalendarEvents() {
-    const { data, error } = await db.functions.invoke("get-calendar-events");
+    calendarStatus = "Loading calendar...";
 
-    if (error) {
-      console.error("Calendar error:", error);
+    try {
+      const { data, error } = await db.functions.invoke("get-calendar-events", {
+        method: "GET"
+      });
+
+      if (error) {
+        calendarEvents = [];
+        calendarStatus = "Calendar function error: " + error.message;
+        console.error("Calendar function error:", error);
+        return;
+      }
+
+      if (data && data.error) {
+        calendarEvents = [];
+        calendarStatus = "Google Calendar error: " + data.error;
+        console.error("Google Calendar error:", data.error);
+        return;
+      }
+
+      calendarEvents = Array.isArray(data?.events) ? data.events : [];
+      calendarStatus = calendarEvents.length
+        ? "Calendar connected · " + calendarEvents.length + " upcoming event(s)"
+        : "Calendar connected, but no upcoming events returned.";
+    } catch (err) {
       calendarEvents = [];
-      return;
+      calendarStatus = "Calendar loading failed: " + err.message;
+      console.error("Calendar loading failed:", err);
     }
-
-    calendarEvents = data?.events || [];
   }
 
-  function getTodayEvents() {
-    const today = new Date().toDateString();
+  function parseEventDate(event) {
+    if (!event || !event.start) return null;
 
-    return calendarEvents.filter(event => {
-      if (!event.start) return false;
-      return new Date(event.start).toDateString() === today;
-    });
+    if (event.allDay && event.start.includes("-")) {
+      const parts = event.start.split("-");
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 0, 0, 0);
+    }
+
+    return new Date(event.start);
   }
 
   function getNextEvent() {
+    if (!calendarEvents.length) return null;
+
     const now = new Date();
 
-    return calendarEvents.find(event => {
-      if (!event.start) return false;
-      return new Date(event.start) >= now;
-    }) || calendarEvents[0];
+    const sorted = calendarEvents
+      .filter(event => event.start)
+      .map(event => ({ ...event, parsedDate: parseEventDate(event) }))
+      .filter(event => event.parsedDate && !isNaN(event.parsedDate))
+      .sort((a, b) => a.parsedDate - b.parsedDate);
+
+    const todayOrFuture = sorted.find(event => {
+      const sameDay = event.parsedDate.toDateString() === now.toDateString();
+      const future = event.parsedDate >= now;
+      return sameDay || future;
+    });
+
+    return todayOrFuture || sorted[0] || null;
   }
 
   function formatEventDate(event) {
-    if (!event || !event.start) return "No time set";
-
-    const date = new Date(event.start);
+    const date = parseEventDate(event);
+    if (!date) return "No time set";
 
     if (event.allDay) {
       return date.toLocaleDateString([], {
         weekday: "short",
         month: "short",
         day: "numeric"
-      });
+      }) + " · All day";
     }
 
     return date.toLocaleString([], {
@@ -278,10 +318,7 @@
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
 
-    const startText = start.toLocaleDateString([], { month: "short", day: "numeric" });
-    const endText = end.toLocaleDateString([], { month: "short", day: "numeric" });
-
-    return `${startText} – ${endText}`;
+    return `${start.toLocaleDateString([], { month: "short", day: "numeric" })} – ${end.toLocaleDateString([], { month: "short", day: "numeric" })}`;
   }
 
   function requireYwamEmail(email) {
@@ -455,6 +492,7 @@
     currentUser = null;
     currentProfile = null;
     calendarEvents = [];
+    calendarStatus = "Calendar not loaded yet.";
     showLogin();
   }
 
@@ -524,9 +562,11 @@
           <div class="today-event-bar"></div>
           <div class="today-event-content">
             <div class="today-event-title">${nextEvent ? nextEvent.title : "No upcoming events"}</div>
-            <div class="today-event-time">${nextEvent ? formatEventDate(nextEvent) : "Calendar is connected"}</div>
+            <div class="today-event-time">${nextEvent ? formatEventDate(nextEvent) : "Check calendar connection"}</div>
           </div>
         </div>
+
+        <div class="calendar-status">${calendarStatus}</div>
       </div>
 
       <div class="section-title">Announcements</div>
@@ -543,13 +583,13 @@
           <div class="today-event-card">
             <div class="today-event-bar"></div>
             <div class="today-event-content">
-              <div class="today-event-title">${event.title}</div>
+              <div class="today-event-title">${event.title || "Untitled event"}</div>
               <div class="today-event-time">${formatEventDate(event)}</div>
               ${event.location ? `<div class="small">${event.location}</div>` : ""}
             </div>
           </div>
         `).join("")
-      : `<div class="card">No upcoming calendar events found.</div>`;
+      : `<div class="card">No upcoming calendar events found.<div class="small">${calendarStatus}</div></div>`;
 
     document.getElementById("app").innerHTML = `
       <span class="back" onclick="showHome()">← Back</span>
@@ -568,6 +608,8 @@
         <div class="home-week-days">
           ${getWeekDaysHtml()}
         </div>
+
+        <div class="calendar-status">${calendarStatus}</div>
       </div>
 
       <div class="section-title">Upcoming Events</div>
