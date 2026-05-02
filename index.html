@@ -215,37 +215,13 @@
     });
   }
 
-function getNextEvent() {
-  if (!calendarEvents.length) return null;
+  function getNextEvent() {
+    const now = new Date();
 
-  const now = new Date();
-
-  const sorted = calendarEvents
-    .filter(e => e.start)
-    .map(e => ({
-      ...e,
-      date: new Date(e.start)
-    }))
-    .sort((a, b) => a.date - b.date);
-
-  // Find first upcoming OR today event
-  for (let event of sorted) {
-    const eventDate = event.date;
-
-    // Include all-day events by comparing only date
-    const isToday =
-      eventDate.toDateString() === now.toDateString();
-
-    const isFuture = eventDate >= now;
-
-    if (isToday || isFuture) {
-      return event;
-    }
-  }
-
-  // fallback: return first event
-  return sorted[0];
-}
+    return calendarEvents.find(event => {
+      if (!event.start) return false;
+      return new Date(event.start) >= now;
+    }) || calendarEvents[0];
   }
 
   function formatEventDate(event) {
