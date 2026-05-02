@@ -10,6 +10,24 @@
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css">
+
+  <style>
+    .home-logo {
+      display: block;
+      width: 330px;
+      max-width: 92%;
+      height: auto;
+      margin: 8px auto 4px;
+    }
+
+    .home-logo-subtitle {
+      text-align: center;
+      font-size: 16px;
+      color: #6b7280;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+  </style>
 </head>
 
 <body>
@@ -157,21 +175,40 @@
   }
 
   function getTodayEventsHtml() {
-    const todayEvents = getTodayEvents();
+    const now = new Date();
 
-    if (!todayEvents.length) {
+    const upcomingEvents = calendarEvents
+      .filter(event => {
+        const date = parseEventDate(event);
+        if (!date) return false;
+
+        if (event.allDay) {
+          return date >= new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        }
+
+        return date > now;
+      })
+      .sort((a, b) => parseEventDate(a) - parseEventDate(b));
+
+    if (!upcomingEvents.length) {
       return `
-        <div class="today-event-title">No events today</div>
-        <div class="today-event-time">Nothing scheduled for today</div>
+        <div class="today-event-title">No upcoming events</div>
+        <div class="today-event-time">Nothing scheduled next</div>
       `;
     }
 
-    return todayEvents.map(event => `
+    const nextEvent = upcomingEvents[0];
+    const nextDate = parseEventDate(nextEvent);
+
+    return `
       <div>
-        <div class="today-event-title">${event.title || "Untitled event"}</div>
-        <div class="today-event-time">${formatEventDate(event)}${event.location ? " · " + event.location : ""}</div>
+        <div class="today-event-title">${nextEvent.title || "Untitled event"}</div>
+        <div class="today-event-time">
+          ${nextDate.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
+          · ${formatEventDate(nextEvent)}${nextEvent.location ? " · " + nextEvent.location : ""}
+        </div>
       </div>
-    `).join("");
+    `;
   }
 
   function requireYwamEmail(email) {
@@ -381,18 +418,16 @@
     document.getElementById("nav").style.display = "flex";
 
     document.getElementById("app").innerHTML = `
-      <div style="text-align:center; margin-top:10px;">
-        <img src="ywma_la_new_logo_horizontal.png" alt="YWAM LA Logo" style="max-width:360px; width:100%; height:auto; margin-bottom:6px;">
-        <div style="font-size:35px; color:#6b7280; font-weight:700;">Pulse Ecosystem</div>
-      </div>
+      <img src="/ywam_la_new_logo_horizontal.png" class="home-logo" alt="YWAM LA Logo">
+      <div class="home-logo-subtitle">Pulse Ecosystem</div>
 
-      <div class="small" style="text-align:center; margin:10px 0 8px;">
+      <div class="small" style="text-align:center; margin-bottom:8px;">
         Signed in as ${currentProfile?.name || currentUser.email}
         · <span onclick="logout()" style="color:#f97316; cursor:pointer;">Log out</span>
       </div>
 
       <div class="triangle-wrap">
-        <img src="triangle.png" class="triangle" alt="YWAM LA Triangle">
+        <img src="/triangle.png" class="triangle" alt="YWAM LA Triangle">
         <div onclick="showArea('Campus','Life & Operations')" class="tap-zone campus-zone"></div>
         <div onclick="showArea('Go','Outreach & Missions')" class="tap-zone go-zone"></div>
         <div onclick="showArea('UofN','Training & Schools')" class="tap-zone uofn-zone"></div>
@@ -436,7 +471,7 @@
         <div class="home-week-header">
           <div class="home-week-left">
             <div class="home-week-icon">▦</div>
-            <div class="home-week-title">This Week</div>
+            <div class="home-week-title">Next Event</div>
           </div>
           <div class="home-week-range">${getWeekRangeText()}</div>
         </div>
@@ -458,13 +493,31 @@
   function showCalendar() {
     if (!currentUser) return showLogin();
 
-    const eventsHtml = calendarEvents.length
-      ? calendarEvents.map(event => `
+    const now = new Date();
+
+    const upcomingEvents = calendarEvents
+      .filter(event => {
+        const date = parseEventDate(event);
+        if (!date) return false;
+
+        if (event.allDay) {
+          return date >= new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        }
+
+        return date > now;
+      })
+      .sort((a, b) => parseEventDate(a) - parseEventDate(b));
+
+    const eventsHtml = upcomingEvents.length
+      ? upcomingEvents.map(event => `
           <div class="today-event-card">
             <div class="today-event-bar"></div>
             <div class="today-event-content">
               <div class="today-event-title">${event.title || "Untitled event"}</div>
-              <div class="today-event-time">${formatEventDate(event)}${event.location ? " · " + event.location : ""}</div>
+              <div class="today-event-time">
+                ${parseEventDate(event).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
+                · ${formatEventDate(event)}${event.location ? " · " + event.location : ""}
+              </div>
             </div>
           </div>
         `).join("")
