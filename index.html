@@ -14,10 +14,10 @@
   <style>
     .home-logo {
       display: block;
-      width: 330px;
+      width: 340px;   /* 👈 CHANGE THIS TO CONTROL SIZE */
       max-width: 92%;
       height: auto;
-      margin: 8px auto 4px;
+      margin: 10px auto 6px;
     }
 
     .home-logo-subtitle {
@@ -42,738 +42,159 @@
 </div>
 
 <script>
-  const SUPABASE_URL = "https://livkeknqrjgmumjgwkuh.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_uGTC509N0reeUKs-5SviUQ_2VJvhEa1";
-  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  let currentUser = null;
-  let currentProfile = null;
-  let currentConversationId = null;
-  let calendarEvents = [];
-  let calendarStatus = "Calendar not loaded yet.";
-
-  async function init() {
-    const hash = window.location.hash || "";
-
-    if (hash.includes("access_token") || hash.includes("type=recovery")) {
-      showResetPassword();
-      return;
-    }
-
-    const { data } = await db.auth.getUser();
-    currentUser = data.user;
-
-    if (currentUser) {
-      await loadProfile();
-      await loadCalendarEvents();
-      showHome();
-    } else {
-      showLogin();
-    }
-  }
-
-  async function loadCalendarEvents() {
-    calendarStatus = "Loading calendar...";
-
-    try {
-      const { data, error } = await db.functions.invoke("get-calendar-events", {
-        method: "GET"
-      });
-
-      if (error) {
-        calendarEvents = [];
-        calendarStatus = "Calendar function error: " + error.message;
-        return;
-      }
-
-      if (data && data.error) {
-        calendarEvents = [];
-        calendarStatus = "Google Calendar error: " + data.error;
-        return;
-      }
-
-      calendarEvents = Array.isArray(data?.events) ? data.events : [];
-      calendarStatus = calendarEvents.length
-        ? "Calendar connected · " + calendarEvents.length + " event(s)"
-        : "Calendar connected, but no events returned.";
-    } catch (err) {
-      calendarEvents = [];
-      calendarStatus = "Calendar loading failed: " + err.message;
-    }
-  }
-
-  function parseEventDate(event) {
-    if (!event || !event.start) return null;
-
-    if (event.allDay && event.start.includes("-")) {
-      const parts = event.start.split("-");
-      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 0, 0, 0);
-    }
-
-    return new Date(event.start);
-  }
-
-  function getTodayEvents() {
-    const today = new Date();
-
-    return calendarEvents
-      .filter(event => {
-        const date = parseEventDate(event);
-        if (!date) return false;
-        return date.toDateString() === today.toDateString();
-      })
-      .sort((a, b) => parseEventDate(a) - parseEventDate(b));
-  }
-
-  function formatEventDate(event) {
-    const date = parseEventDate(event);
-    if (!date) return "No time set";
-
-    if (event.allDay) {
-      return "All day";
-    }
-
-    return date.toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit"
-    });
-  }
-
-  function getWeekDaysHtml() {
-    const today = new Date();
-    const start = new Date(today);
-    start.setDate(today.getDate() - today.getDay());
-
-    let html = "";
-
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(start);
-      day.setDate(start.getDate() + i);
-
-      const isToday = day.toDateString() === today.toDateString();
-
-      html += `
-        <div class="home-week-day ${isToday ? "active" : ""}">
-          <span>${day.toLocaleDateString([], { weekday: "short" }).toUpperCase()}</span>
-          <strong>${day.getDate()}</strong>
-        </div>
-      `;
-    }
-
-    return html;
-  }
-
-  function getWeekRangeText() {
-    const today = new Date();
-    const start = new Date(today);
-    start.setDate(today.getDate() - today.getDay());
-
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-
-    return `${start.toLocaleDateString([], { month: "short", day: "numeric" })} – ${end.toLocaleDateString([], { month: "short", day: "numeric" })}`;
-  }
-
-  function getTodayEventsHtml() {
-    const now = new Date();
-
-    const upcomingEvents = calendarEvents
-      .filter(event => {
-        const date = parseEventDate(event);
-        if (!date) return false;
-
-        if (event.allDay) {
-          return date >= new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        }
-
-        return date > now;
-      })
-      .sort((a, b) => parseEventDate(a) - parseEventDate(b));
-
-    if (!upcomingEvents.length) {
-      return `
-        <div class="today-event-title">No upcoming events</div>
-        <div class="today-event-time">Nothing scheduled next</div>
-      `;
-    }
-
-    const nextEvent = upcomingEvents[0];
-    const nextDate = parseEventDate(nextEvent);
-
-    return `
-      <div>
-        <div class="today-event-title">${nextEvent.title || "Untitled event"}</div>
-        <div class="today-event-time">
-          ${nextDate.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
-          · ${formatEventDate(nextEvent)}${nextEvent.location ? " · " + nextEvent.location : ""}
-        </div>
-      </div>
-    `;
-  }
-
-  function requireYwamEmail(email) {
-    return email.toLowerCase().endsWith("@ywamla.org");
-  }
-
-  function showLogin() {
-    document.getElementById("nav").style.display = "none";
-
-    document.getElementById("app").innerHTML = `
-      <h1>PULSE</h1>
-      <div class="subtitle">YWAM Los Angeles Staff Login</div>
-
-      <div class="card">
-        <input id="name" placeholder="Full name">
-        <input id="email" placeholder="YWAM LA email">
-        <input id="password" type="password" placeholder="Password">
-        <div class="row">
-          <button onclick="signUp()">Sign Up</button>
-          <button class="secondary" onclick="login()">Log In</button>
-        </div>
-        <div class="small">Use your @ywamla.org email.</div>
-        <div class="small" style="margin-top:14px;">
-          Forgot password? <span class="link" onclick="showForgotPassword()">Reset it here</span>
-        </div>
-      </div>
-    `;
-  }
-
-  function showForgotPassword() {
-    document.getElementById("nav").style.display = "none";
-
-    document.getElementById("app").innerHTML = `
-      <h1>PULSE</h1>
-      <div class="subtitle">Reset your password</div>
-
-      <div class="card">
-        <input id="resetEmail" placeholder="YWAM LA email">
-        <button onclick="sendPasswordReset()">Send reset link</button>
-        <div class="small" style="margin-top:14px;">
-          <span class="link" onclick="showLogin()">← Back to login</span>
-        </div>
-      </div>
-    `;
-  }
-
-  async function sendPasswordReset() {
-    const email = document.getElementById("resetEmail").value.trim().toLowerCase();
-
-    if (!requireYwamEmail(email)) {
-      alert("Please use a @ywamla.org email.");
-      return;
-    }
-
-    const { error } = await db.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://pulse-ywamla.vercel.app"
-    });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    alert("Password reset email sent. Open the newest email link.");
-  }
-
-  function showResetPassword() {
-    document.getElementById("nav").style.display = "none";
-
-    document.getElementById("app").innerHTML = `
-      <h1>PULSE</h1>
-      <div class="subtitle">Create a new password</div>
-
-      <div class="card">
-        <input id="newPassword" type="password" placeholder="New password">
-        <button onclick="updatePassword()">Update Password</button>
-      </div>
-    `;
-  }
-
-  async function updatePassword() {
-    const newPassword = document.getElementById("newPassword").value;
-
-    if (!newPassword || newPassword.length < 6) {
-      alert("Password must be at least 6 characters.");
-      return;
-    }
-
-    const { error } = await db.auth.updateUser({
-      password: newPassword
-    });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    alert("Password updated. Please log in.");
-    window.location.hash = "";
-    await db.auth.signOut();
-    showLogin();
-  }
-
-  async function signUp() {
-    const name = document.getElementById("name").value.trim();
-    const email = document.getElementById("email").value.trim().toLowerCase();
-    const password = document.getElementById("password").value;
-
-    if (!requireYwamEmail(email)) {
-      alert("Please use a @ywamla.org email.");
-      return;
-    }
-
-    if (!name || !password) {
-      alert("Enter name and password.");
-      return;
-    }
-
-    const { data, error } = await db.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name }
-      }
-    });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    if (data.user) {
-      await db.from("profiles").upsert({
-        id: data.user.id,
-        name,
-        email
-      });
-    }
-
-    alert("Account created. Now log in.");
-    showLogin();
-  }
-
-  async function login() {
-    const email = document.getElementById("email").value.trim().toLowerCase();
-    const password = document.getElementById("password").value;
-
-    if (!requireYwamEmail(email)) {
-      alert("Please use a @ywamla.org email.");
-      return;
-    }
-
-    const { data, error } = await db.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    currentUser = data.user;
+const SUPABASE_URL = "https://livkeknqrjgmumjgwkuh.supabase.co";
+const SUPABASE_KEY = "sb_publishable_uGTC509N0reeUKs-5SviUQ_2VJvhEa1";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let currentProfile = null;
+let calendarEvents = [];
+
+async function init() {
+  const { data } = await db.auth.getUser();
+  currentUser = data.user;
+
+  if (currentUser) {
     await loadProfile();
     await loadCalendarEvents();
     showHome();
-  }
-
-  async function logout() {
-    await db.auth.signOut();
-    currentUser = null;
-    currentProfile = null;
-    calendarEvents = [];
-    calendarStatus = "Calendar not loaded yet.";
+  } else {
     showLogin();
   }
+}
 
-  async function loadProfile() {
-    const { data } = await db
-      .from("profiles")
-      .select("*")
-      .eq("id", currentUser.id)
-      .single();
-
-    currentProfile = data;
-
-    if (!currentProfile) {
-      await db.from("profiles").upsert({
-        id: currentUser.id,
-        name: currentUser.user_metadata?.full_name || currentUser.email,
-        email: currentUser.email
-      });
-
-      const { data: newProfile } = await db
-        .from("profiles")
-        .select("*")
-        .eq("id", currentUser.id)
-        .single();
-
-      currentProfile = newProfile;
-    }
+async function loadCalendarEvents() {
+  try {
+    const { data } = await db.functions.invoke("get-calendar-events");
+    calendarEvents = Array.isArray(data?.events) ? data.events : [];
+  } catch {
+    calendarEvents = [];
   }
-
-  function showHome() {
-    if (!currentUser) return showLogin();
-
-    document.getElementById("nav").style.display = "flex";
-
-    document.getElementById("app").innerHTML = `
-      <img src="/ywam_la_new_logo_horizontal.png" class="home-logo" alt="YWAM LA Logo">
-      <div class="home-logo-subtitle">Pulse Ecosystem</div>
-
-      <div class="small" style="text-align:center; margin-bottom:8px;">
-        Signed in as ${currentProfile?.name || currentUser.email}
-        · <span onclick="logout()" style="color:#f97316; cursor:pointer;">Log out</span>
-      </div>
-
-      <div class="triangle-wrap">
-        <img src="/triangle.png" class="triangle" alt="YWAM LA Triangle">
-        <div onclick="showArea('Campus','Life & Operations')" class="tap-zone campus-zone"></div>
-        <div onclick="showArea('Go','Outreach & Missions')" class="tap-zone go-zone"></div>
-        <div onclick="showArea('UofN','Training & Schools')" class="tap-zone uofn-zone"></div>
-      </div>
-
-      <div class="section-title">Pages</div>
-
-      <div class="pages-grid">
-        <div class="page-tile" onclick="showPage('YWAM LA Staff','YWAM LA Staff page coming soon.')">
-          <div class="page-icon">👥</div>
-          <div class="page-title">Staff</div>
-        </div>
-
-        <div class="page-tile" onclick="showPage('Bulletin Board','Bulletin Board coming soon.')">
-          <div class="page-icon">📌</div>
-          <div class="page-title">Bulletin</div>
-        </div>
-
-        <div class="page-tile" onclick="showPage('Drives','Drives page coming soon.')">
-          <div class="page-icon">📁</div>
-          <div class="page-title">Drives</div>
-        </div>
-
-        <div class="page-tile" onclick="showPage('Lockup','Lockup page coming soon.')">
-          <div class="page-icon">🔒</div>
-          <div class="page-title">Lockup</div>
-        </div>
-
-        <div class="page-tile" onclick="showPage('Worship & Intercession','Worship & Intercession page coming soon.')">
-          <div class="page-icon">🎵</div>
-          <div class="page-title">Worship</div>
-        </div>
-
-        <div class="page-tile" onclick="showPage('Prayers and Praises','Prayers and Praises page coming soon.')">
-          <div class="page-icon">🙏</div>
-          <div class="page-title">Prayer</div>
-        </div>
-      </div>
-
-      <div class="home-week-widget" onclick="showCalendar()">
-        <div class="home-week-header">
-          <div class="home-week-left">
-            <div class="home-week-icon">▦</div>
-            <div class="home-week-title">Next Event</div>
-          </div>
-          <div class="home-week-range">${getWeekRangeText()}</div>
-        </div>
-
-        <div class="home-week-days">
-          ${getWeekDaysHtml()}
-        </div>
-
-        <div class="today-event-card">
-          <div class="today-event-bar"></div>
-          <div class="today-event-content">
-            ${getTodayEventsHtml()}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  function showCalendar() {
-    if (!currentUser) return showLogin();
-
-    const now = new Date();
-
-    const upcomingEvents = calendarEvents
-      .filter(event => {
-        const date = parseEventDate(event);
-        if (!date) return false;
-
-        if (event.allDay) {
-          return date >= new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        }
-
-        return date > now;
-      })
-      .sort((a, b) => parseEventDate(a) - parseEventDate(b));
-
-    const eventsHtml = upcomingEvents.length
-      ? upcomingEvents.map(event => `
-          <div class="today-event-card">
-            <div class="today-event-bar"></div>
-            <div class="today-event-content">
-              <div class="today-event-title">${event.title || "Untitled event"}</div>
-              <div class="today-event-time">
-                ${parseEventDate(event).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
-                · ${formatEventDate(event)}${event.location ? " · " + event.location : ""}
-              </div>
-            </div>
-          </div>
-        `).join("")
-      : `<div class="card">No upcoming calendar events found.<div class="small">${calendarStatus}</div></div>`;
-
-    document.getElementById("app").innerHTML = `
-      <span class="back" onclick="showHome()">← Back</span>
-      <h1>Calendar</h1>
-      <div class="subtitle">Base Master Calendar</div>
-
-      <div class="home-week-widget">
-        <div class="home-week-header">
-          <div class="home-week-left">
-            <div class="home-week-icon">▦</div>
-            <div class="home-week-title">This Week</div>
-          </div>
-          <div class="home-week-range">${getWeekRangeText()}</div>
-        </div>
-
-        <div class="home-week-days">
-          ${getWeekDaysHtml()}
-        </div>
-      </div>
-
-      <div class="section-title">Upcoming Events</div>
-      <div class="calendar-event-list">
-        ${eventsHtml}
-      </div>
-    `;
-  }
-
-  function showArea(title, subtitle) {
-    if (!currentUser) return showLogin();
-
-    document.getElementById("app").innerHTML = `
-      <span class="back" onclick="showHome()">← Back</span>
-      <h1>${title}</h1>
-      <div class="subtitle">${subtitle}</div>
-      <div class="card"><strong>Leaders</strong><div class="small">Add leaders and team members here.</div></div>
-      <div class="card"><strong>Updates</strong><div class="small">Area-specific announcements will show here.</div></div>
-      <div class="card" onclick="showChatList()"><strong>Open Chat</strong><div class="small">Go to conversation list.</div></div>
-    `;
-  }
-
-  function showPage(title, text) {
-    if (!currentUser) return showLogin();
-
-    document.getElementById("app").innerHTML = `
-      <span class="back" onclick="showHome()">← Back</span>
-      <h1>${title}</h1>
-      <div class="card">${text}</div>
-    `;
-  }
-
-  async function showChatList() {
-    if (!currentUser) return showLogin();
-
-    document.getElementById("app").innerHTML = `
-      <h1>Chats</h1>
-      <div class="subtitle">Groups and private messages</div>
-
-      <div class="section-title">Official & Group Chats</div>
-      <div id="conversationList"><div class="card">Loading chats...</div></div>
-
-      <div class="section-title">Start Private Chat</div>
-      <div class="card">
-        <input id="privateEmail" placeholder="person@ywamla.org">
-        <button onclick="startPrivateChatByEmail()">Start Chat</button>
-      </div>
-    `;
-
-    await loadConversationList();
-  }
-
-  async function loadConversationList() {
-    const box = document.getElementById("conversationList");
-
-    const { data, error } = await db
-      .from("conversations")
-      .select("*")
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      box.innerHTML = `<div class="card">Error: ${error.message}</div>`;
-      return;
-    }
-
-    const myEmail = currentUser.email.toLowerCase();
-
-    const visible = data.filter(c => {
-      if (c.type !== "dm") return true;
-      return c.name.toLowerCase().includes(myEmail);
-    });
-
-    box.innerHTML = visible.map(c => `
-      <div class="card" onclick="openConversation('${c.id}', '${escapeText(c.name)}')">
-        <strong>${displayConversationName(c.name)}</strong>
-        <div class="small">${c.type === "dm" ? "Private conversation" : c.type}</div>
-      </div>
-    `).join("");
-  }
-
-  function displayConversationName(name) {
-    if (!currentUser) return name;
-    return name.replace(currentUser.email.toLowerCase(), "You");
-  }
-
-  async function startPrivateChatByEmail() {
-    const otherEmail = document.getElementById("privateEmail").value.trim().toLowerCase();
-
-    if (!requireYwamEmail(otherEmail)) {
-      alert("Use a @ywamla.org email.");
-      return;
-    }
-
-    if (otherEmail === currentUser.email.toLowerCase()) {
-      alert("That is your own email.");
-      return;
-    }
-
-    await startPrivateChat(otherEmail);
-  }
-
-  async function startPrivateChat(otherEmail) {
-    if (!otherEmail || !otherEmail.includes("@")) return;
-
-    const myEmail = currentUser.email.toLowerCase();
-    const cleanOtherEmail = otherEmail.toLowerCase();
-
-    if (cleanOtherEmail === myEmail) return;
-
-    const emails = [myEmail, cleanOtherEmail].sort();
-    const dmName = `${emails[0]} ↔ ${emails[1]}`;
-
-    const { data: existing } = await db
-      .from("conversations")
-      .select("*")
-      .eq("name", dmName)
-      .eq("type", "dm")
-      .limit(1);
-
-    if (existing && existing.length > 0) {
-      openConversation(existing[0].id, existing[0].name);
-      return;
-    }
-
-    const { data, error } = await db
-      .from("conversations")
-      .insert([{
-        name: dmName,
-        type: "dm",
-        created_by_name: currentProfile?.name || currentUser.email
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    await db.from("conversation_members").insert([
-      { conversation_id: data.id, member_email: myEmail, member_name: currentProfile?.name || myEmail },
-      { conversation_id: data.id, member_email: cleanOtherEmail, member_name: cleanOtherEmail }
-    ]);
-
-    openConversation(data.id, data.name);
-  }
-
-  async function openConversation(id, name) {
-    if (!currentUser) return showLogin();
-
-    currentConversationId = id;
-
-    document.getElementById("app").innerHTML = `
-      <span class="back" onclick="showChatList()">← Chats</span>
-      <h1>${displayConversationName(name)}</h1>
-      <div id="messages"><div class="card">Loading messages...</div></div>
-
-      <div class="chat-input">
-        <input id="messageInput" placeholder="Type message...">
-        <button onclick="sendMessage()">Send</button>
-      </div>
-    `;
-
-    await loadMessages();
-  }
-
-  async function loadMessages() {
-    const box = document.getElementById("messages");
-    if (!box || !currentConversationId) return;
-
-    const { data, error } = await db
-      .from("messages")
-      .select("*")
-      .eq("conversation_id", currentConversationId)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      box.innerHTML = `<div class="card">Error: ${error.message}</div>`;
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      box.innerHTML = `<div class="card">No messages yet.</div>`;
-      return;
-    }
-
-    box.innerHTML = data.map(msg => `
-      <div class="card">
-        <div class="sender" onclick="startPrivateChat('${msg.sender_email}')">
-          ${msg.sender_name || msg.sender_email || "Unknown"}
-        </div>
-        <div class="small">${msg.content}</div>
-      </div>
-    `).join("");
-
-    setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 50);
-  }
-
-  async function sendMessage() {
-    const input = document.getElementById("messageInput");
-    const text = input.value.trim();
-
-    if (!text || !currentConversationId) return;
-
-    const { error } = await db.from("messages").insert([{
-      content: text,
-      sender_name: currentProfile?.name || currentUser.email,
-      sender_email: currentUser.email.toLowerCase(),
-      conversation_id: currentConversationId
-    }]);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    input.value = "";
-    await loadMessages();
-  }
-
-  function escapeText(text) {
-    return String(text).replace(/'/g, "\\'");
-  }
-
-  db.channel("pulse-live")
-    .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
-      loadMessages();
+}
+
+function parseEventDate(event) {
+  if (!event || !event.start) return null;
+  return new Date(event.start);
+}
+
+function formatEventDate(event) {
+  const d = parseEventDate(event);
+  if (!d) return "No time set";
+  if (event.allDay) return "All day";
+  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+/* ✅ NEXT EVENT LOGIC (FIXED) */
+function getTodayEventsHtml() {
+  const now = new Date();
+
+  const upcoming = calendarEvents
+    .filter(e => {
+      const d = parseEventDate(e);
+      return d && d > now;
     })
-    .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
-      if (document.getElementById("conversationList")) loadConversationList();
-    })
-    .subscribe();
+    .sort((a,b) => parseEventDate(a) - parseEventDate(b));
 
-  init();
+  if (!upcoming.length) {
+    return `<div>No upcoming events</div>`;
+  }
+
+  const e = upcoming[0];
+  const d = parseEventDate(e);
+
+  return `
+    <div>
+      <div><strong>${e.title || "Untitled"}</strong></div>
+      <div>
+        ${d.toLocaleDateString([], { weekday:"short", month:"short", day:"numeric" })}
+        · ${formatEventDate(e)}
+        ${e.location ? " · " + e.location : ""}
+      </div>
+    </div>
+  `;
+}
+
+function showHome() {
+  document.getElementById("nav").style.display = "flex";
+
+  document.getElementById("app").innerHTML = `
+    <img src="ywam_la_new_logo_horizontal.png" class="home-logo">
+    <div class="home-logo-subtitle">Pulse Ecosystem</div>
+
+    <div style="text-align:center;">
+      ${currentProfile?.name || currentUser.email}
+    </div>
+
+    <div style="margin-top:20px;">
+      ${getTodayEventsHtml()}
+    </div>
+  `;
+}
+
+function showLogin() {
+  document.getElementById("nav").style.display = "none";
+
+  document.getElementById("app").innerHTML = `
+    <h1>PULSE</h1>
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+  `;
+}
+
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const { data, error } = await db.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  currentUser = data.user;
+  await loadProfile();
+  await loadCalendarEvents();
+  showHome();
+}
+
+async function loadProfile() {
+  const { data } = await db.from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .single();
+
+  currentProfile = data;
+}
+
+function showCalendar() {
+  document.getElementById("app").innerHTML = `
+    <span onclick="showHome()">← Back</span>
+    <h1>Calendar</h1>
+
+    ${calendarEvents.map(e => `
+      <div>
+        <strong>${e.title}</strong><br>
+        ${formatEventDate(e)}
+      </div>
+    `).join("")}
+  `;
+}
+
+function showChatList() {
+  document.getElementById("app").innerHTML = `<h1>Chat coming</h1>`;
+}
+
+function showPage(title,text) {
+  document.getElementById("app").innerHTML = `
+    <span onclick="showHome()">← Back</span>
+    <h1>${title}</h1>
+    <div>${text}</div>
+  `;
+}
+
+init();
 </script>
 
 </body>
