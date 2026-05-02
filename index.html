@@ -16,16 +16,30 @@
 
 <div class="app" id="app"></div>
 
-function showPagesMenu() {
+function showHome() {
   if (!currentUser) return showLogin();
 
+  document.getElementById("nav").style.display = "flex";
+
   document.getElementById("app").innerHTML = `
-    <span class="back" onclick="showHome()">← Back</span>
-    <h1>Pages</h1>
-    <div class="subtitle">YWAM LA resources</div>
+    <h1>PULSE</h1>
+    <div class="subtitle">YWAM Los Angeles</div>
+
+    <div class="small" style="text-align:center; margin-bottom:8px;">
+      Signed in as ${currentProfile?.name || currentUser.email}
+      · <span onclick="logout()" style="color:#f97316; cursor:pointer;">Log out</span>
+    </div>
+
+    <div class="triangle-wrap">
+      <img src="triangle.png" class="triangle" alt="YWAM LA Triangle">
+      <div onclick="showArea('Campus','Life & Operations')" class="tap-zone campus-zone"></div>
+      <div onclick="showArea('Go','Outreach & Missions')" class="tap-zone go-zone"></div>
+      <div onclick="showArea('UofN','Training & Schools')" class="tap-zone uofn-zone"></div>
+    </div>
+
+    <div class="section-title">Pages</div>
 
     <div class="pages-grid">
-
       <div class="page-tile" onclick="showPage('YWAM LA Staff','YWAM LA Staff page coming soon.')">
         <div class="page-icon">👥</div>
         <div class="page-title">Staff</div>
@@ -55,9 +69,35 @@ function showPagesMenu() {
         <div class="page-icon">🙏</div>
         <div class="page-title">Prayer</div>
       </div>
+    </div>
 
+    <div class="home-week-widget" onclick="showCalendar()">
+      <div class="home-week-header">
+        <div class="home-week-left">
+          <div class="home-week-icon">▦</div>
+          <div class="home-week-title">This Week</div>
+        </div>
+        <div class="home-week-range">${getWeekRangeText()}</div>
+      </div>
+
+      <div class="home-week-days">
+        ${getWeekDaysHtml()}
+      </div>
+
+      <div class="today-event-card">
+        <div class="today-event-bar"></div>
+        <div class="today-event-content">
+          ${getTodayEventsHtml()}
+        </div>
+      </div>
     </div>
   `;
+}
+
+function showPagesMenu() {
+  if (!currentUser) return showLogin();
+
+  showHome();
 }
   
 <div class="nav" id="nav">
