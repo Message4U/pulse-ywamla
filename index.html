@@ -14,7 +14,7 @@
   <style>
     .logo {
       display:block;
-      width:280px;
+      width:300px;
       max-width:90%;
       margin:10px auto 4px;
     }
@@ -41,12 +41,11 @@
 
 <script>
   const SUPABASE_URL = "https://livkeknqrjgmumjgwkuh.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_key";
+  const SUPABASE_KEY = "sb_publishable_uGTC509N0reeUKs-5SviUQ_2VJvhEa1";
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   let currentUser = null;
   let currentProfile = null;
-  let calendarEvents = [];
 
   async function init() {
     const { data } = await db.auth.getUser();
@@ -66,12 +65,12 @@
     document.getElementById("nav").style.display = "flex";
 
     document.getElementById("app").innerHTML = `
-
       <img src="/ywam_la_new_logo_horizontal.png" class="logo">
       <div class="logo-subtitle">Pulse Ecosystem</div>
 
       <div class="small" style="text-align:center;">
-        ${currentProfile?.name || currentUser.email}
+        Signed in as ${currentProfile?.name || currentUser.email}
+        · <span onclick="logout()" style="color:#f97316; cursor:pointer;">Log out</span>
       </div>
 
       <div class="triangle-wrap">
@@ -124,6 +123,7 @@
 
   function showLogin() {
     document.getElementById("nav").style.display = "none";
+
     document.getElementById("app").innerHTML = `
       <h1>PULSE</h1>
       <div class="card">
@@ -146,7 +146,14 @@
     }
 
     currentUser = data.user;
+    await loadProfile();
     showHome();
+  }
+
+  async function logout() {
+    await db.auth.signOut();
+    currentUser = null;
+    showLogin();
   }
 
   async function loadProfile() {
