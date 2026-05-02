@@ -118,8 +118,12 @@ function showHome() {
   document.getElementById("nav").style.display = "flex";
 
   document.getElementById("app").innerHTML = `
-    <img src="ywam_la_new_logo_horizontal.png" class="home-logo">
-    <div class="home-logo-subtitle">Pulse Ecosystem</div>
+<img
+  src="/ywma_la_new_logo_horizontal.png"
+  onerror="this.onerror=null; this.src='/ywam_la_new_logo_horizontal.png';"
+  class="home-logo"
+  alt="YWAM LA Logo"
+>
 
     <div style="text-align:center;">
       ${currentProfile?.name || currentUser.email}
