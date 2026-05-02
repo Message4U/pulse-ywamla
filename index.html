@@ -14,7 +14,6 @@
     body { margin:0; font-family:Arial,sans-serif; background:#ffffff; color:#16213e; }
     .app { max-width:430px; margin:auto; padding:18px 18px 100px; }
     h1 { text-align:center; margin:18px 0 4px; font-size:34px; letter-spacing:1px; }
-    h2 { text-align:center; }
     .subtitle { text-align:center; color:#777; font-size:13px; margin-bottom:18px; }
     .section-title { font-weight:bold; margin:22px 0 10px; font-size:15px; text-transform:uppercase; color:#6b7280; letter-spacing:.5px; }
     .card { background:white; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.07); cursor:pointer; }
@@ -131,9 +130,7 @@
       flex:none;
     }
 
-    .today-event-content {
-      flex:1;
-    }
+    .today-event-content { flex:1; }
 
     .today-event-title {
       font-size:21px;
@@ -147,6 +144,12 @@
       font-weight:700;
       color:#6b7280;
     }
+
+    .calendar-event-list {
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
   </style>
 </head>
 
@@ -157,7 +160,7 @@
 <div class="nav" id="nav">
   <div onclick="showHome()">Home</div>
   <div onclick="showChatList()">Chat</div>
-  <div onclick="showPage('Calendar','Weekly calendar coming')">Calendar</div>
+  <div onclick="showCalendar()">Calendar</div>
   <div onclick="showPage('Docs','Docs coming')">Docs</div>
 </div>
 
@@ -169,6 +172,7 @@
   let currentUser = null;
   let currentProfile = null;
   let currentConversationId = null;
+  let calendarEvents = [];
 
   async function init() {
     const hash = window.location.hash || "";
@@ -183,10 +187,101 @@
 
     if (currentUser) {
       await loadProfile();
+      await loadCalendarEvents();
       showHome();
     } else {
       showLogin();
     }
+  }
+
+  async function loadCalendarEvents() {
+    const { data, error } = await db.functions.invoke("get-calendar-events");
+
+    if (error) {
+      console.error("Calendar error:", error);
+      calendarEvents = [];
+      return;
+    }
+
+    calendarEvents = data?.events || [];
+  }
+
+  function getTodayEvents() {
+    const today = new Date().toDateString();
+
+    return calendarEvents.filter(event => {
+      if (!event.start) return false;
+      return new Date(event.start).toDateString() === today;
+    });
+  }
+
+  function getNextEvent() {
+    const now = new Date();
+
+    return calendarEvents.find(event => {
+      if (!event.start) return false;
+      return new Date(event.start) >= now;
+    }) || calendarEvents[0];
+  }
+
+  function formatEventDate(event) {
+    if (!event || !event.start) return "No time set";
+
+    const date = new Date(event.start);
+
+    if (event.allDay) {
+      return date.toLocaleDateString([], {
+        weekday: "short",
+        month: "short",
+        day: "numeric"
+      });
+    }
+
+    return date.toLocaleString([], {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  }
+
+  function getWeekDaysHtml() {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - today.getDay());
+
+    let html = "";
+
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(start);
+      day.setDate(start.getDate() + i);
+
+      const isToday = day.toDateString() === today.toDateString();
+
+      html += `
+        <div class="home-week-day ${isToday ? "active" : ""}">
+          <span>${day.toLocaleDateString([], { weekday: "short" }).toUpperCase()}</span>
+          <strong>${day.getDate()}</strong>
+        </div>
+      `;
+    }
+
+    return html;
+  }
+
+  function getWeekRangeText() {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - today.getDay());
+
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    const startText = start.toLocaleDateString([], { month: "short", day: "numeric" });
+    const endText = end.toLocaleDateString([], { month: "short", day: "numeric" });
+
+    return `${startText} – ${endText}`;
   }
 
   function requireYwamEmail(email) {
@@ -351,6 +446,7 @@
 
     currentUser = data.user;
     await loadProfile();
+    await loadCalendarEvents();
     showHome();
   }
 
@@ -358,6 +454,7 @@
     await db.auth.signOut();
     currentUser = null;
     currentProfile = null;
+    calendarEvents = [];
     showLogin();
   }
 
@@ -390,6 +487,8 @@
   function showHome() {
     if (!currentUser) return showLogin();
 
+    const nextEvent = getNextEvent();
+
     document.getElementById("nav").style.display = "flex";
 
     document.getElementById("app").innerHTML = `
@@ -408,9 +507,54 @@
         <div onclick="showArea('UofN','Training & Schools')" class="tap-zone uofn-zone"></div>
       </div>
 
+      <div class="home-week-widget" onclick="showCalendar()">
+        <div class="home-week-header">
+          <div class="home-week-left">
+            <div class="home-week-icon">▦</div>
+            <div class="home-week-title">This Week</div>
+          </div>
+          <div class="home-week-range">${getWeekRangeText()}</div>
+        </div>
+
+        <div class="home-week-days">
+          ${getWeekDaysHtml()}
+        </div>
+
+        <div class="today-event-card">
+          <div class="today-event-bar"></div>
+          <div class="today-event-content">
+            <div class="today-event-title">${nextEvent ? nextEvent.title : "No upcoming events"}</div>
+            <div class="today-event-time">${nextEvent ? formatEventDate(nextEvent) : "Calendar is connected"}</div>
+          </div>
+        </div>
+      </div>
+
       <div class="section-title">Announcements</div>
       <div class="card"><strong>Staff Meeting</strong><div class="small">Friday 10am</div></div>
       <div class="card"><strong>Outreach Team Update</strong><div class="small">Summer Mexico outreach is now full.</div></div>
+    `;
+  }
+
+  function showCalendar() {
+    if (!currentUser) return showLogin();
+
+    const eventsHtml = calendarEvents.length
+      ? calendarEvents.map(event => `
+          <div class="today-event-card">
+            <div class="today-event-bar"></div>
+            <div class="today-event-content">
+              <div class="today-event-title">${event.title}</div>
+              <div class="today-event-time">${formatEventDate(event)}</div>
+              ${event.location ? `<div class="small">${event.location}</div>` : ""}
+            </div>
+          </div>
+        `).join("")
+      : `<div class="card">No upcoming calendar events found.</div>`;
+
+    document.getElementById("app").innerHTML = `
+      <span class="back" onclick="showHome()">← Back</span>
+      <h1>Calendar</h1>
+      <div class="subtitle">Base Master Calendar</div>
 
       <div class="home-week-widget">
         <div class="home-week-header">
@@ -418,26 +562,17 @@
             <div class="home-week-icon">▦</div>
             <div class="home-week-title">This Week</div>
           </div>
-          <div class="home-week-range">Apr 26 – May 2</div>
+          <div class="home-week-range">${getWeekRangeText()}</div>
         </div>
 
         <div class="home-week-days">
-          <div class="home-week-day"><span>SUN</span><strong>26</strong></div>
-          <div class="home-week-day"><span>MON</span><strong>27</strong></div>
-          <div class="home-week-day"><span>TUE</span><strong>28</strong></div>
-          <div class="home-week-day"><span>WED</span><strong>29</strong></div>
-          <div class="home-week-day"><span>THU</span><strong>30</strong></div>
-          <div class="home-week-day active"><span>FRI</span><strong>1</strong></div>
-          <div class="home-week-day"><span>SAT</span><strong>2</strong></div>
+          ${getWeekDaysHtml()}
         </div>
+      </div>
 
-        <div class="today-event-card">
-          <div class="today-event-bar"></div>
-          <div class="today-event-content">
-            <div class="today-event-title">Intercession</div>
-            <div class="today-event-time">◷ Fri, May 1 · 6:00 AM</div>
-          </div>
-        </div>
+      <div class="section-title">Upcoming Events</div>
+      <div class="calendar-event-list">
+        ${eventsHtml}
       </div>
     `;
   }
